@@ -125,6 +125,11 @@ public:
 	void window_set_ime_active(const bool p_active, WindowID p_window = MAIN_WINDOW_ID) override {}
 	void window_set_ime_position(const Point2i &p_pos, WindowID p_window = MAIN_WINDOW_ID) override {}
 
+	int window_special_area_add(SpecialArea p_area, const Rect2i &p_def_rect = Rect2i(), WindowID p_window = MAIN_WINDOW_ID) override { return -1; }
+	void window_special_area_remove(int p_id, WindowID p_window = MAIN_WINDOW_ID) override {}
+	void window_special_area_set_rect(int p_id, const Rect2i &p_rect, WindowID p_window = MAIN_WINDOW_ID) override {}
+	Rect2i window_special_area_get_rect(int p_id, WindowID p_window = MAIN_WINDOW_ID) const override { return Rect2i(); }
+
 	void process_events() override {}
 
 	void set_icon(const Ref<Image> &p_icon) override {}

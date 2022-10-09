@@ -207,6 +207,8 @@ private:
 
 		MouseFilter mouse_filter = MOUSE_FILTER_STOP;
 		bool force_pass_scroll_events = true;
+		bool caption_draggable = false;
+		int caption_draggable_specialarea_id = -1;
 
 		bool clip_contents = false;
 		bool disable_visibility_clip = false;
@@ -294,6 +296,7 @@ private:
 	// Input events.
 
 	void _call_gui_input(const Ref<InputEvent> &p_event);
+	void _update_special_areas();
 
 	// Focus.
 
@@ -487,6 +490,9 @@ public:
 
 	void set_force_pass_scroll_events(bool p_force_pass_scroll_events);
 	bool is_force_pass_scroll_events() const;
+
+	void set_caption_draggable(bool p_draggable);
+	bool is_draggable_for_caption() const;
 
 	void warp_mouse(const Point2 &p_position);
 

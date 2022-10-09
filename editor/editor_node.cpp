@@ -7437,7 +7437,13 @@ EditorNode::EditorNode() {
 	// Extend menu bar to window title.
 	if (can_expand) {
 		DisplayServer::get_singleton()->window_set_flag(DisplayServer::WINDOW_FLAG_EXTEND_TO_TITLE, true, DisplayServer::MAIN_WINDOW_ID);
-		menu_hb->set_can_move_window(true);
+		if (DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_CAPTION_AREA)) {
+			left_spacer->set_caption_draggable(true);
+			right_spacer->set_caption_draggable(true);
+		} else {
+			menu_hb->set_can_move_window(true);
+		}
+		
 	}
 
 	String exec = OS::get_singleton()->get_executable_path();

@@ -124,6 +124,7 @@ public:
 		FEATURE_CLIPBOARD_PRIMARY,
 		FEATURE_TEXT_TO_SPEECH,
 		FEATURE_EXTEND_TO_TITLE,
+		FEATURE_CAPTION_AREA
 	};
 
 	virtual bool has_feature(Feature p_feature) const = 0;
@@ -312,6 +313,12 @@ public:
 		WINDOW_FLAG_EXTEND_TO_TITLE_BIT = (1 << WINDOW_FLAG_EXTEND_TO_TITLE),
 	};
 
+	enum SpecialArea {
+		WINDOW_AREA_CAPTION,
+		WINDOW_AREA_MAXBUTTON,
+		WINDOW_AREA_MAX
+	};
+
 	virtual WindowID create_sub_window(WindowMode p_mode, VSyncMode p_vsync_mode, uint32_t p_flags, const Rect2i &p_rect = Rect2i());
 	virtual void show_window(WindowID p_id);
 	virtual void delete_sub_window(WindowID p_id);
@@ -384,6 +391,11 @@ public:
 
 	virtual void window_set_window_buttons_offset(const Vector2i &p_offset, WindowID p_window = MAIN_WINDOW_ID) {}
 	virtual Vector3i window_get_safe_title_margins(WindowID p_window = MAIN_WINDOW_ID) const { return Vector3i(); }
+
+	virtual int window_special_area_add(SpecialArea p_area, const Rect2i &p_def_rect = Rect2i(), WindowID p_window = MAIN_WINDOW_ID) = 0;
+	virtual void window_special_area_remove(int p_id, WindowID p_window = MAIN_WINDOW_ID) = 0;
+	virtual void window_special_area_set_rect(int p_id, const Rect2i &p_rect, WindowID p_window = MAIN_WINDOW_ID) = 0;
+	virtual Rect2i window_special_area_get_rect(int p_id, WindowID p_window = MAIN_WINDOW_ID) const = 0;
 
 	virtual bool window_can_draw(WindowID p_window = MAIN_WINDOW_ID) const = 0;
 
@@ -496,6 +508,7 @@ VARIANT_ENUM_CAST(DisplayServer::MouseMode)
 VARIANT_ENUM_CAST(DisplayServer::ScreenOrientation)
 VARIANT_ENUM_CAST(DisplayServer::WindowMode)
 VARIANT_ENUM_CAST(DisplayServer::WindowFlags)
+VARIANT_ENUM_CAST(DisplayServer::SpecialArea)
 VARIANT_ENUM_CAST(DisplayServer::HandleType)
 VARIANT_ENUM_CAST(DisplayServer::VirtualKeyboardType);
 VARIANT_ENUM_CAST(DisplayServer::CursorShape)

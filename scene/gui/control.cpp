@@ -1713,6 +1713,30 @@ void Control::_call_gui_input(const Ref<InputEvent> &p_event) {
 	gui_input(p_event);
 }
 
+void Control::_update_special_areas() {
+#ifdef TOOLS_ENABLED
+	if (Engine::get_singleton()->is_editor_hint() && is_inside_tree()) {
+		if (get_tree()->is_node_being_edited(this)) {
+			return;
+		}
+	}
+#endif
+
+	if (!is_inside_tree())
+		return;
+
+	if (!data.caption_draggable || !is_visible_in_tree()) {
+		if (data.caption_draggable_specialarea_id == -1)
+			return;
+
+		DisplayServer::get_singleton()->window_special_area_remove(data.caption_draggable_specialarea_id, get_viewport()->get_base_window()->get_window_id());
+		data.caption_draggable_specialarea_id = -1;
+		return;
+	}
+	data.caption_draggable_specialarea_id = DisplayServer::get_singleton()->window_special_area_add(
+			DisplayServer::WINDOW_AREA_CAPTION, get_global_rect(), get_viewport()->get_base_window()->get_window_id());
+}
+
 void Control::gui_input(const Ref<InputEvent> &p_event) {
 }
 
@@ -1747,6 +1771,19 @@ void Control::set_force_pass_scroll_events(bool p_force_pass_scroll_events) {
 
 bool Control::is_force_pass_scroll_events() const {
 	return data.force_pass_scroll_events;
+}
+
+void Control::set_caption_draggable(bool p_draggable) {
+	if (!DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_CAPTION_AREA)) {
+		return;
+	}
+	data.caption_draggable = p_draggable;
+	notify_property_list_changed();
+	_update_special_areas();
+}
+
+bool Control::is_draggable_for_caption() const {
+	return data.caption_draggable;
 }
 
 void Control::warp_mouse(const Point2 &p_position) {
@@ -2906,6 +2943,7 @@ void Control::_notification(int p_notification) {
 				ERR_FAIL_COND(!viewport);
 				viewport->connect("size_changed", callable_mp(this, &Control::_size_changed));
 			}
+			_update_special_areas();
 		} break;
 
 		case NOTIFICATION_EXIT_CANVAS: {
@@ -2923,6 +2961,8 @@ void Control::_notification(int p_notification) {
 				get_viewport()->_gui_remove_root_control(data.RI);
 				data.RI = nullptr;
 			}
+
+			_update_special_areas();
 
 			data.parent = nullptr;
 			data.parent_canvas_item = nullptr;
@@ -2944,6 +2984,9 @@ void Control::_notification(int p_notification) {
 		} break;
 
 		case NOTIFICATION_RESIZED: {
+			if (is_inside_tree() && data.caption_draggable_specialarea_id != -1) {
+				DisplayServer::get_singleton()->window_special_area_set_rect(data.caption_draggable_specialarea_id, get_global_rect(), get_viewport()->get_base_window()->get_window_id());
+			}
 			emit_signal(SceneStringNames::get_singleton()->resized);
 		} break;
 
@@ -3132,6 +3175,9 @@ void Control::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_default_cursor_shape"), &Control::get_default_cursor_shape);
 	ClassDB::bind_method(D_METHOD("get_cursor_shape", "position"), &Control::get_cursor_shape, DEFVAL(Point2()));
 
+	ClassDB::bind_method(D_METHOD("set_caption_draggable", "draggable"), &Control::set_caption_draggable);
+	ClassDB::bind_method(D_METHOD("is_draggable_for_caption"), &Control::is_draggable_for_caption);
+
 	ClassDB::bind_method(D_METHOD("set_focus_neighbor", "side", "neighbor"), &Control::set_focus_neighbor);
 	ClassDB::bind_method(D_METHOD("get_focus_neighbor", "side"), &Control::get_focus_neighbor);
 
@@ -3239,6 +3285,7 @@ void Control::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_filter", PROPERTY_HINT_ENUM, "Stop,Pass,Ignore"), "set_mouse_filter", "get_mouse_filter");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "mouse_force_pass_scroll_events"), "set_force_pass_scroll_events", "is_force_pass_scroll_events");
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "mouse_default_cursor_shape", PROPERTY_HINT_ENUM, "Arrow,I-Beam,Pointing Hand,Cross,Wait,Busy,Drag,Can Drop,Forbidden,Vertical Resize,Horizontal Resize,Secondary Diagonal Resize,Main Diagonal Resize,Move,Vertical Split,Horizontal Split,Help"), "set_default_cursor_shape", "get_default_cursor_shape");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "mouse_caption_draggable"), "set_caption_draggable", "is_draggable_for_caption");
 
 	ADD_GROUP("Input", "");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "shortcut_context", PROPERTY_HINT_NODE_TYPE, "Node"), "set_shortcut_context", "get_shortcut_context");

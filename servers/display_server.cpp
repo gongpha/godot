@@ -690,6 +690,11 @@ void DisplayServer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("window_maximize_on_title_dbl_click"), &DisplayServer::window_maximize_on_title_dbl_click);
 	ClassDB::bind_method(D_METHOD("window_minimize_on_title_dbl_click"), &DisplayServer::window_minimize_on_title_dbl_click);
 
+	ClassDB::bind_method(D_METHOD("window_special_area_add", "area", "def_rect", "window_id"), &DisplayServer::window_special_area_add);
+	ClassDB::bind_method(D_METHOD("window_special_area_remove", "id", "window_id"), &DisplayServer::window_special_area_remove);
+	ClassDB::bind_method(D_METHOD("window_special_area_set_rect", "id", "rect", "window_id"), &DisplayServer::window_special_area_set_rect);
+	ClassDB::bind_method(D_METHOD("window_special_area_get_rect", "id", "window_id"), &DisplayServer::window_special_area_get_rect);
+
 	ClassDB::bind_method(D_METHOD("ime_get_selection"), &DisplayServer::ime_get_selection);
 	ClassDB::bind_method(D_METHOD("ime_get_text"), &DisplayServer::ime_get_text);
 
@@ -747,6 +752,7 @@ void DisplayServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(FEATURE_CLIPBOARD_PRIMARY);
 	BIND_ENUM_CONSTANT(FEATURE_TEXT_TO_SPEECH);
 	BIND_ENUM_CONSTANT(FEATURE_EXTEND_TO_TITLE);
+	BIND_ENUM_CONSTANT(FEATURE_CAPTION_AREA);
 
 	BIND_ENUM_CONSTANT(MOUSE_MODE_VISIBLE);
 	BIND_ENUM_CONSTANT(MOUSE_MODE_HIDDEN);
@@ -808,6 +814,10 @@ void DisplayServer::_bind_methods() {
 	BIND_ENUM_CONSTANT(WINDOW_FLAG_POPUP);
 	BIND_ENUM_CONSTANT(WINDOW_FLAG_EXTEND_TO_TITLE);
 	BIND_ENUM_CONSTANT(WINDOW_FLAG_MAX);
+
+	BIND_ENUM_CONSTANT(WINDOW_AREA_CAPTION);
+	BIND_ENUM_CONSTANT(WINDOW_AREA_MAXBUTTON);
+	BIND_ENUM_CONSTANT(WINDOW_AREA_MAX);
 
 	BIND_ENUM_CONSTANT(WINDOW_EVENT_MOUSE_ENTER);
 	BIND_ENUM_CONSTANT(WINDOW_EVENT_MOUSE_EXIT);

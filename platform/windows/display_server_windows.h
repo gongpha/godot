@@ -343,6 +343,11 @@ class DisplayServerWindows : public DisplayServer {
 
 	RBMap<int, Vector2> touch_state;
 
+	struct SpecialAreaItem {
+		SpecialArea area;
+		Rect2i rect;
+	};
+
 	int pressrc;
 	HINSTANCE hInstance; // Holds The Instance Of The Application
 	String rendering_driver;
@@ -372,6 +377,7 @@ class DisplayServerWindows : public DisplayServer {
 		bool window_has_focus = false;
 		bool exclusive = false;
 		bool context_created = false;
+		bool extend_to_title = false;
 
 		// Used to transfer data between events using timer.
 		WPARAM saved_wparam;
@@ -420,6 +426,9 @@ class DisplayServerWindows : public DisplayServer {
 
 		bool is_popup = false;
 		Rect2i parent_safe_rect;
+
+		RBMap<int, SpecialAreaItem> special_areas;
+		int special_area_counter = 0;
 	};
 
 	JoypadWindows *joypad = nullptr;
@@ -439,7 +448,7 @@ class DisplayServerWindows : public DisplayServer {
 	WNDPROC user_proc = nullptr;
 
 	void _send_window_event(const WindowData &wd, WindowEvent p_event);
-	void _get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_maximized, bool p_no_activate_focus, DWORD &r_style, DWORD &r_style_ex);
+	void _get_window_style(bool p_main_window, bool p_fullscreen, bool p_multiwindow_fs, bool p_borderless, bool p_resizable, bool p_maximized, bool p_no_activate_focus, bool p_extend_to_title, DWORD &r_style, DWORD &r_style_ex);
 
 	MouseMode mouse_mode;
 	int restore_mouse_trails = 0;
@@ -590,6 +599,11 @@ public:
 
 	virtual void window_set_vsync_mode(DisplayServer::VSyncMode p_vsync_mode, WindowID p_window = MAIN_WINDOW_ID) override;
 	virtual DisplayServer::VSyncMode window_get_vsync_mode(WindowID p_vsync_mode) const override;
+
+	virtual int window_special_area_add(SpecialArea p_area, const Rect2i &p_def_rect = Rect2i(), WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual void window_special_area_remove(int p_id, WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual void window_special_area_set_rect(int p_id, const Rect2i &p_rect, WindowID p_window = MAIN_WINDOW_ID) override;
+	virtual Rect2i window_special_area_get_rect(int p_id, WindowID p_window = MAIN_WINDOW_ID) const override;
 
 	virtual void cursor_set_shape(CursorShape p_shape) override;
 	virtual CursorShape cursor_get_shape() const override;
