@@ -849,6 +849,23 @@ Patches:
 
 - `0001-glad-egl.patch` (GH-98824)
 
+## opus
+
+*(my fork)*
+- Upstream: https://opus-codec.org
+- Version: 1.5.2 (opus) and 0.12 (opusfile)
+- License: BSD-3-Clause
+
+Files extracted from upstream source:
+
+- all .c and .h files in src/ (both opus and opusfile)
+- all .h files in include/ (both opus and opusfile) as opus/
+- remove unused `opus_demo.c`, `opus_multistream_demo.c`, `opusfile_example.c`
+- remove `http.c`, `wincerts.c` and `winerrno.h` (part of
+  unused libopusurl)
+- remove tests/ in celt/ and silk/
+- celt/ and silk/ subfolders
+- COPYING
 
 ## pcre2
 
