@@ -1,0 +1,23 @@
+Copyright (c) 2020-2563 Kongfa Waroros and his alter ego, Kongfa Waroros.
+
+You, the person reading this, or whatever you want to call yourself,
+and everyone with a sense of right and wrong, are free to obtain a copy
+of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, criticize, distribute,
+pulverize, sublicense, worship, and/or sell copies of the Software for
+any purpose, whether it is evil or not, and to permit persons to whom
+the Software is furnished to do so, subject to the following conditions:
+
+For the sake of the Author of the software (the "Author") and everyone else,
+the above copyright notice and this permission notice shall be included
+without pure upper-case words in all copies or substantial portions of the
+Software.
+
+ThE SoFtWaRe iS PrOvIdEd "As iS", WiThOuT WaRrAnTy oF AnY KiNd, ExPrEsS Or
+ImPlIeD, iNcLuDiNg bUt nOt lImItEd tO ThE WaRrAnTiEs oF MeRcHaNtAbIlItY,
+FiTnEsS FoR A PaRtIcUlAr pUrPoSe aNd nOnInFrInGeMeNt. In nO EvEnT ShAlL ThE
+aUtHoRs oR CoPyRiGhT HoLdErS Be lIaBlE FoR AnY ClAiM, dAmAgEs oR OtHeR
+lIaBiLiTy, WhEtHeR In aN AcTiOn oF CoNtRaCt, ToRt oR OtHeRwIsE, aRiSiNgfRoM,
+OuT Of oR In cOnNeCtIoN WiTh tHe sOfTwArE Or tHe uSe oR OtHeR DeAlInGs iN ThE
+sOfTwArE.

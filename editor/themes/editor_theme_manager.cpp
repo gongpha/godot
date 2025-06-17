@@ -354,9 +354,14 @@ EditorThemeManager::ThemeConfiguration EditorThemeManager::_create_theme_config(
 				preset_accent_color = Color(0.15, 0.55, 0.82);
 				preset_base_color = Color(0.89, 0.86, 0.79);
 				preset_contrast = light_contrast;
-			} else { // Default
+			} else if (config.preset == "Godot") { // Default (Original)
+				preset_accent_color = Color(0.44, 0.73, 0.98);
+				preset_base_color = Color(0.21, 0.24, 0.29);
+				preset_contrast = config.default_contrast;
+			} else { // Default (This fork, my personal preference)
 				preset_accent_color = Color(0.337, 0.62, 1.0);
 				preset_base_color = Color(0.161, 0.161, 0.161);
+				preset_contrast = config.default_contrast;
 			}
 
 			config.accent_color = preset_accent_color;

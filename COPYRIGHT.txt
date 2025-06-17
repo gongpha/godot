@@ -40,6 +40,11 @@ Upstream-Contact: Rémi Verschelde <contact@godotengine.org>
 Source: https://github.com/godotengine/godot
 
 Files: *
+Comment: Godot Engine 66
+Copyright: 2020-present, Kongfa Waroros
+License: Expat
+
+Files: *
 Comment: Godot Engine
 Copyright: 2014-present, Godot Engine contributors
  2007-2014, Juan Linietsky, Ariel Manzur

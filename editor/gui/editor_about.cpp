@@ -50,10 +50,16 @@
 #include "scene/gui/tree.h"
 #include "scene/resources/style_box.h"
 
+// 66
+#include "66/build.gen.h"
+
 void EditorAbout::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_TRANSLATION_CHANGED: {
 			_about_text_label->set_text(
+					// 66 begin
+					String(U"© 2020-present Kongfa Waroros") + ".\n" +
+					// 66 end
 					String(U"© 2014-present ") + TTR("Godot Engine contributors") + ".\n" +
 					String(U"© 2007-2014 Juan Linietsky, Ariel Manzur.\n"));
 
@@ -246,6 +252,26 @@ EditorAbout::EditorAbout() {
 	tc->set_theme_type_variation("TabContainerOdd");
 	vbc->add_child(tc);
 
+	// 66 begin
+	{
+		ScrollContainer *sc = memnew(ScrollContainer);
+		sc->set_name(TTRC("66"));
+		sc->set_v_size_flags(Control::SIZE_EXPAND);
+		tc->add_child(sc);
+
+		VBoxContainer *vb = memnew(VBoxContainer);
+		vb->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		sc->add_child(vb);
+
+		Label* notice_label = memnew(Label(TTRC(NOTICE_TEXT)));
+		notice_label->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
+		vb->add_child(notice_label);
+
+		//_create_section(vb, TTRC("Primary Built for"), BUILT_FOR, FLAG_SINGLE_COLUMN);
+		_create_section(vb, TTRC("Developers"), DEVELOPERS);
+	}
+	// 66 end
+
 	{
 		ScrollContainer *sc = memnew(ScrollContainer);
 		sc->set_name(TTRC("Authors"));
@@ -283,6 +309,17 @@ EditorAbout::EditorAbout() {
 		_create_section(vb, TTRC("Platinum Members"), DONORS_MEMBERS_PLATINUM, FLAG_ALLOW_WEBSITE);
 		_create_section(vb, TTRC("Gold Members"), DONORS_MEMBERS_GOLD, FLAG_ALLOW_WEBSITE);
 	}
+
+	// License 66
+
+	license_text_label_66 = memnew(RichTextLabel);
+	license_text_label_66->set_auto_translate_mode(AUTO_TRANSLATE_MODE_DISABLED);
+	license_text_label_66->set_threaded(true);
+	license_text_label_66->set_name(TTRC("License (66)"));
+	license_text_label_66->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+	license_text_label_66->set_v_size_flags(Control::SIZE_EXPAND_FILL);
+	license_text_label_66->set_text(String::utf8(GODOT_66_LICENSE_TEXT));
+	tc->add_child(license_text_label_66);
 
 	// License.
 

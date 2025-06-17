@@ -4,6 +4,7 @@ from misc.utility.scons_hints import *
 import os
 
 import core_builders
+import core_builders_66
 
 import methods
 
@@ -207,6 +208,9 @@ env.CommandNoCache(
     env.Run(core_builders.make_certs_header),
 )
 
+# 66 Contributors
+env.CommandNoCache("#66/build.gen.h", ["#66/notice.txt", "#66/README.md"], env.Run(core_builders_66.make_66_header))
+
 # Authors
 env.CommandNoCache("#core/authors.gen.h", "#AUTHORS.md", env.Run(core_builders.make_authors_header))
 
@@ -215,7 +219,7 @@ env.CommandNoCache("#core/donors.gen.h", "#DONORS.md", env.Run(core_builders.mak
 
 # License
 env.CommandNoCache(
-    "#core/license.gen.h", ["#COPYRIGHT.txt", "#LICENSE.txt"], env.Run(core_builders.make_license_header)
+    "#core/license.gen.h", ["#COPYRIGHT.txt", "#LICENSE_66.txt", "#LICENSE.txt"], env.Run(core_builders.make_license_header)
 )
 
 # Chain load SCsubs

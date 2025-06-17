@@ -161,6 +161,7 @@ def make_donors_header(target, source, env):
 def make_license_header(target, source, env):
     src_copyright = str(source[0])
     src_license = str(source[1])
+    src_license_godot = str(source[2])
 
     class LicenseReader:
         def __init__(self, license_file: TextIOWrapper):
@@ -216,14 +217,23 @@ def make_license_header(target, source, env):
             part["copyright_index"] = len(data_list)
             data_list += part["Copyright"]
 
+    with open(src_license_godot, "r", encoding="utf-8") as file:
+        license_text_godot = file.read()
+
+    # 66
     with open(src_license, "r", encoding="utf-8") as file:
         license_text = file.read()
 
     with methods.generated_wrapper(str(target[0])) as file:
         file.write(f"""\
 inline constexpr const char *GODOT_LICENSE_TEXT = {{
+{methods.to_raw_cstring(license_text_godot)}
+}};
+    
+inline constexpr const char *GODOT_66_LICENSE_TEXT = {{
 {methods.to_raw_cstring(license_text)}
 }};
+
 
 struct ComponentCopyrightPart {{
 	const char *license;

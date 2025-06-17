@@ -67,6 +67,9 @@
 #include "servers/display/display_server.h"
 #include "servers/navigation_3d/navigation_server_3d.h"
 
+// 66
+#include "66/build.gen.h"
+
 #ifndef PHYSICS_2D_DISABLED
 #include "servers/physics_2d/physics_server_2d.h"
 #endif // PHYSICS_2D_DISABLED
@@ -1511,6 +1514,14 @@ ProjectManager::ProjectManager() {
 		local_projects_vb = memnew(VBoxContainer);
 		local_projects_vb->set_name("LocalProjectsTab");
 		_add_main_view(MAIN_VIEW_PROJECTS, TTRC("Projects"), Ref<Texture2D>(), local_projects_vb);
+
+		// 66 begin
+		{
+			Label* notice_label = memnew(Label(TTRC(NOTICE_TEXT)));
+			notice_label->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
+			local_projects_vb->add_child(notice_label);
+		}
+		// 66 end
 
 		// Project list's top bar.
 		{
