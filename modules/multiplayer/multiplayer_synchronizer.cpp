@@ -31,6 +31,7 @@
 #include "multiplayer_synchronizer.h"
 
 #include "core/config/engine.h"
+#include "core/os/os.h"
 #include "scene/main/multiplayer_api.h"
 
 Object *MultiplayerSynchronizer::_get_prop_target(Object *p_obj, const NodePath &p_path) {
@@ -84,19 +85,27 @@ void MultiplayerSynchronizer::_update_process() {
 	}
 	set_process_internal(false);
 	set_physics_process_internal(false);
-	if (!visibility_filters.size()) {
-		return;
+
+	// 66 begin
+	// handle visibility filters
+	if (visibility_filters.size()) {
+		switch (visibility_update_mode) {
+			case VISIBILITY_PROCESS_IDLE:
+				set_process_internal(true);
+				break;
+			case VISIBILITY_PROCESS_PHYSICS:
+				set_physics_process_internal(true);
+				break;
+			case VISIBILITY_PROCESS_NONE:
+				break;
+		}
 	}
-	switch (visibility_update_mode) {
-		case VISIBILITY_PROCESS_IDLE:
-			set_process_internal(true);
-			break;
-		case VISIBILITY_PROCESS_PHYSICS:
-			set_physics_process_internal(true);
-			break;
-		case VISIBILITY_PROCESS_NONE:
-			break;
+
+	// handle interpolation (only on non-authority, always use idle process)
+	if (_has_interpolate_properties() && !is_multiplayer_authority()) {
+		set_process_internal(true);
 	}
+	// 66 end
 }
 
 Node *MultiplayerSynchronizer::get_root_node() {
@@ -110,6 +119,12 @@ void MultiplayerSynchronizer::reset() {
 	last_watch_usec = 0;
 	sync_started = false;
 	watchers.clear();
+	// 66 begin
+	interpolation_states.clear();
+	interpolation_fraction = 0.0;
+	last_sync_receive_usec = 0;
+	sync_receive_interval_usec = 0;
+	// 66 end
 }
 
 uint32_t MultiplayerSynchronizer::get_net_id() const {
@@ -223,6 +238,10 @@ void MultiplayerSynchronizer::set_visibility_for(int p_peer, bool p_visible) {
 	}
 	if (p_visible) {
 		peer_visibility.insert(p_peer);
+
+		// 66 begin
+		reset_interpolation();
+		// 66 end
 	} else {
 		peer_visibility.erase(p_peer);
 	}
@@ -267,6 +286,12 @@ void MultiplayerSynchronizer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_visibility_for", "peer", "visible"), &MultiplayerSynchronizer::set_visibility_for);
 	ClassDB::bind_method(D_METHOD("get_visibility_for", "peer"), &MultiplayerSynchronizer::get_visibility_for);
 
+	// 66 begin
+	ClassDB::bind_method(D_METHOD("get_interpolation_fraction"), &MultiplayerSynchronizer::get_interpolation_fraction);
+	ClassDB::bind_method(D_METHOD("notify_sync_receive"), &MultiplayerSynchronizer::notify_sync_receive);
+	ClassDB::bind_method(D_METHOD("reset_interpolation"), &MultiplayerSynchronizer::reset_interpolation);
+	// 66 end
+
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "root_path"), "set_root_path", "get_root_path");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "replication_interval", PROPERTY_HINT_RANGE, "0,5,0.001,suffix:s"), "set_replication_interval", "get_replication_interval");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "delta_interval", PROPERTY_HINT_RANGE, "0,5,0.001,suffix:s"), "set_delta_interval", "get_delta_interval");
@@ -302,9 +327,19 @@ void MultiplayerSynchronizer::_notification(int p_what) {
 			_stop();
 		} break;
 
-		case NOTIFICATION_INTERNAL_PROCESS:
+		case NOTIFICATION_INTERNAL_PROCESS: {
+			if (visibility_filters.size() && visibility_update_mode == VISIBILITY_PROCESS_IDLE) {
+				update_visibility(0);
+			}
+			if (_has_interpolate_properties() && !is_multiplayer_authority()) {
+				_apply_interpolation(get_process_delta_time());
+			}
+		} break;
+
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
-			update_visibility(0);
+			if (visibility_filters.size() && visibility_update_mode == VISIBILITY_PROCESS_PHYSICS) {
+				update_visibility(0);
+			}
 		} break;
 	}
 }
@@ -451,7 +486,242 @@ SceneReplicationConfig *MultiplayerSynchronizer::get_replication_config_ptr() co
 	return replication_config.ptr();
 }
 
+// 66 begin
+Variant MultiplayerSynchronizer::_interpolate_variant(const Variant &p_from, const Variant &p_to, double p_fraction) {
+	// handle interpolation based on variant type
+	switch (p_from.get_type()) {
+		case Variant::INT: {
+			int64_t from = p_from;
+			int64_t to = p_to;
+			return (int64_t)Math::round(Math::lerp((double)from, (double)to, p_fraction));
+		}
+		case Variant::FLOAT: {
+			double from = p_from;
+			double to = p_to;
+			return Math::lerp(from, to, p_fraction);
+		}
+		case Variant::VECTOR2: {
+			Vector2 from = p_from;
+			Vector2 to = p_to;
+			return from.lerp(to, p_fraction);
+		}
+		case Variant::VECTOR2I: {
+			Vector2i from = p_from;
+			Vector2i to = p_to;
+			return Vector2i(
+					(int32_t)Math::round(Math::lerp((double)from.x, (double)to.x, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.y, (double)to.y, p_fraction)));
+		}
+		case Variant::VECTOR3: {
+			Vector3 from = p_from;
+			Vector3 to = p_to;
+			return from.lerp(to, p_fraction);
+		}
+		case Variant::VECTOR3I: {
+			Vector3i from = p_from;
+			Vector3i to = p_to;
+			return Vector3i(
+					(int32_t)Math::round(Math::lerp((double)from.x, (double)to.x, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.y, (double)to.y, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.z, (double)to.z, p_fraction)));
+		}
+		case Variant::VECTOR4: {
+			Vector4 from = p_from;
+			Vector4 to = p_to;
+			return from.lerp(to, p_fraction);
+		}
+		case Variant::VECTOR4I: {
+			Vector4i from = p_from;
+			Vector4i to = p_to;
+			return Vector4i(
+					(int32_t)Math::round(Math::lerp((double)from.x, (double)to.x, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.y, (double)to.y, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.z, (double)to.z, p_fraction)),
+					(int32_t)Math::round(Math::lerp((double)from.w, (double)to.w, p_fraction)));
+		}
+		case Variant::QUATERNION: {
+			Quaternion from = p_from;
+			Quaternion to = p_to;
+			return from.slerp(to, p_fraction);
+		}
+		case Variant::BASIS: {
+			Basis from = p_from;
+			Basis to = p_to;
+			return from.slerp(to, p_fraction);
+		}
+		case Variant::TRANSFORM2D: {
+			Transform2D from = p_from;
+			Transform2D to = p_to;
+			return from.interpolate_with(to, p_fraction);
+		}
+		case Variant::TRANSFORM3D: {
+			Transform3D from = p_from;
+			Transform3D to = p_to;
+			return from.interpolate_with(to, p_fraction);
+		}
+		case Variant::COLOR: {
+			Color from = p_from;
+			Color to = p_to;
+			return from.lerp(to, p_fraction);
+		}
+		case Variant::RECT2: {
+			Rect2 from = p_from;
+			Rect2 to = p_to;
+			return Rect2(
+					from.position.lerp(to.position, p_fraction),
+					from.size.lerp(to.size, p_fraction));
+		}
+		case Variant::RECT2I: {
+			Rect2i from = p_from;
+			Rect2i to = p_to;
+			return Rect2i(
+					Vector2i(
+							(int32_t)Math::round(Math::lerp((double)from.position.x, (double)to.position.x, p_fraction)),
+							(int32_t)Math::round(Math::lerp((double)from.position.y, (double)to.position.y, p_fraction))),
+					Vector2i(
+							(int32_t)Math::round(Math::lerp((double)from.size.x, (double)to.size.x, p_fraction)),
+							(int32_t)Math::round(Math::lerp((double)from.size.y, (double)to.size.y, p_fraction))));
+		}
+		case Variant::AABB: {
+			AABB from = p_from;
+			AABB to = p_to;
+			return AABB(
+					from.position.lerp(to.position, p_fraction),
+					from.size.lerp(to.size, p_fraction));
+		}
+		case Variant::PLANE: {
+			Plane from = p_from;
+			Plane to = p_to;
+			return Plane(
+					from.normal.lerp(to.normal, p_fraction).normalized(),
+					Math::lerp(from.d, to.d, (real_t)p_fraction));
+		}
+		default:
+			// non-interpolatable types, just return target at fraction >= 0.5
+			return p_fraction >= 0.5 ? p_to : p_from;
+	}
+}
+
+void MultiplayerSynchronizer::_apply_interpolation(double p_delta) {
+	if (!_has_interpolate_properties()) {
+		return;
+	}
+
+	Node *node = get_root_node();
+	if (!node) {
+		return;
+	}
+
+	if (sync_receive_interval_usec == 0) {
+		return; // no sync received yet, can't interpolate
+	}
+
+	// update interpolation fraction based on time since last sync
+	uint64_t current_usec = OS::get_singleton()->get_ticks_usec();
+	uint64_t elapsed = current_usec - last_sync_receive_usec;
+	interpolation_fraction = CLAMP((double)elapsed / (double)sync_receive_interval_usec, 0.0, 1.0);
+
+	// apply interpolated values to properties
+	for (int i = 0; i < interpolation_states.size(); i++) {
+		InterpolationState &state = interpolation_states.write[i];
+		if (!state.valid) {
+			continue;
+		}
+
+		Object *obj = _get_prop_target(node, state.prop);
+		if (!obj) {
+			continue;
+		}
+
+		Variant interpolated = _interpolate_variant(state.from_value, state.to_value, interpolation_fraction);
+		obj->set_indexed(state.prop.get_subnames(), interpolated);
+	}
+}
+
+bool MultiplayerSynchronizer::_has_interpolate_properties() const {
+	if (replication_config.is_null()) {
+		return false;
+	}
+	return replication_config->get_interpolate_properties().size() > 0;
+}
+
+double MultiplayerSynchronizer::get_interpolation_fraction() const {
+	return interpolation_fraction;
+}
+
+void MultiplayerSynchronizer::notify_sync_receive() {
+	if (!_has_interpolate_properties()) {
+		return;
+	}
+
+	Node *node = get_root_node();
+	if (!node) {
+		return;
+	}
+
+	uint64_t current_usec = OS::get_singleton()->get_ticks_usec();
+
+	// calculate interval between syncs
+	if (last_sync_receive_usec > 0) {
+		sync_receive_interval_usec = current_usec - last_sync_receive_usec;
+	}
+	last_sync_receive_usec = current_usec;
+
+	// get interpolate properties
+	const List<NodePath> &interp_props = replication_config->get_interpolate_properties();
+
+	// resize interpolation states if needed
+	if (interpolation_states.size() != interp_props.size()) {
+		interpolation_states.resize(interp_props.size());
+	}
+
+	// update interpolation states: move current "to" to "from", and capture new "to"
+	int idx = 0;
+	for (const NodePath &prop : interp_props) {
+		InterpolationState &state = interpolation_states.write[idx];
+
+		Object *obj = _get_prop_target(node, prop);
+		if (!obj) {
+			state.valid = false;
+			idx++;
+			continue;
+		}
+
+		bool valid = false;
+		Variant current_value = obj->get_indexed(prop.get_subnames(), &valid);
+		if (!valid) {
+			state.valid = false;
+			idx++;
+			continue;
+		}
+
+		if (state.valid) {
+			// move previous target to source
+			state.from_value = state.to_value;
+		} else {
+			// first sync, use current value as source
+			state.from_value = current_value;
+		}
+
+		state.prop = prop;
+		state.to_value = current_value;
+		state.valid = true;
+		idx++;
+	}
+
+	// reset interpolation fraction for new segment
+	interpolation_fraction = 0.0;
+}
+
+void MultiplayerSynchronizer::reset_interpolation() {
+	interpolation_states.clear();
+	interpolation_fraction = 0.0;
+	last_sync_receive_usec = 0;
+	sync_receive_interval_usec = 0;
+}
+// 66 end
+
 MultiplayerSynchronizer::MultiplayerSynchronizer() {
-	// Publicly visible by default.
+	// publicly visible by default
 	peer_visibility.insert(0);
 }

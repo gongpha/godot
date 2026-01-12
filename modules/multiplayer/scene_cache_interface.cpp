@@ -133,7 +133,7 @@ void SceneCacheInterface::process_simplify_path(int p_from, const uint8_t *p_pac
 	Ref<MultiplayerPeer> multiplayer_peer = multiplayer->get_multiplayer_peer();
 	ERR_FAIL_COND(multiplayer_peer.is_null());
 
-	multiplayer_peer->set_transfer_channel(0);
+	multiplayer_peer->set_transfer_channel(100); // 66
 	multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 	multiplayer->send_command(p_from, packet.ptr(), packet.size());
 }
@@ -192,7 +192,7 @@ Error SceneCacheInterface::_send_confirm_path(Node *p_node, NodeCache &p_cache, 
 
 	Error err = OK;
 	for (int peer_id : p_peers) {
-		multiplayer_peer->set_transfer_channel(0);
+		multiplayer_peer->set_transfer_channel(100); // 66
 		multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 		err = multiplayer->send_command(peer_id, packet.ptr(), packet.size());
 		ERR_FAIL_COND_V(err != OK, err);

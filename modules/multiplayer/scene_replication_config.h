@@ -49,6 +49,7 @@ private:
 	struct ReplicationProperty {
 		NodePath name;
 		bool spawn = true;
+		bool interpolate = false; // 66
 		ReplicationMode mode = REPLICATION_MODE_ALWAYS;
 
 		bool operator==(const ReplicationProperty &p_to) {
@@ -66,6 +67,7 @@ private:
 	List<NodePath> spawn_props;
 	List<NodePath> sync_props;
 	List<NodePath> watch_props;
+	List<NodePath> interpolate_props; // 66
 	bool dirty = false;
 
 	void _update();
@@ -96,12 +98,18 @@ public:
 	bool property_get_watch(const NodePath &p_path);
 	void property_set_watch(const NodePath &p_path, bool p_enabled);
 
+	// 66 begin
+	bool property_get_interpolate(const NodePath &p_path);
+	void property_set_interpolate(const NodePath &p_path, bool p_enabled);
+	// 66 end
+
 	ReplicationMode property_get_replication_mode(const NodePath &p_path);
 	void property_set_replication_mode(const NodePath &p_path, ReplicationMode p_mode);
 
 	const List<NodePath> &get_spawn_properties();
 	const List<NodePath> &get_sync_properties();
 	const List<NodePath> &get_watch_properties();
+	const List<NodePath> &get_interpolate_properties(); // 66
 
 	SceneReplicationConfig() {}
 };

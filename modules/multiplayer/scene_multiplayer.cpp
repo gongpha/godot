@@ -369,7 +369,7 @@ void SceneMultiplayer::_admit_peer(int p_id) {
 		uint8_t buf[SYS_CMD_SIZE];
 		buf[0] = NETWORK_COMMAND_SYS;
 		buf[1] = SYS_COMMAND_ADD_PEER;
-		multiplayer_peer->set_transfer_channel(0);
+		multiplayer_peer->set_transfer_channel(100); // 66
 		multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 		for (const int &P : connected_peers) {
 			// Send new peer to already connected.
@@ -406,7 +406,7 @@ void SceneMultiplayer::_del_peer(int p_id) {
 		uint8_t buf[SYS_CMD_SIZE];
 		buf[0] = NETWORK_COMMAND_SYS;
 		buf[1] = SYS_COMMAND_DEL_PEER;
-		multiplayer_peer->set_transfer_channel(0);
+		multiplayer_peer->set_transfer_channel(100); // 66
 		multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 		encode_uint32(p_id, &buf[2]);
 		for (const int &P : connected_peers) {
@@ -468,7 +468,7 @@ Error SceneMultiplayer::send_auth(int p_to, Vector<uint8_t> p_data) {
 	memcpy(&packet_cache.write[2], p_data.ptr(), p_data.size());
 
 	multiplayer_peer->set_target_peer(p_to);
-	multiplayer_peer->set_transfer_channel(0);
+	multiplayer_peer->set_transfer_channel(100); // 66
 	multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 	return _send(packet_cache.ptr(), p_data.size() + 2);
 }
@@ -482,7 +482,7 @@ Error SceneMultiplayer::complete_auth(int p_peer) {
 	// Notify the remote peer that the authentication has completed.
 	uint8_t buf[2] = { NETWORK_COMMAND_SYS, SYS_COMMAND_AUTH };
 	multiplayer_peer->set_target_peer(p_peer);
-	multiplayer_peer->set_transfer_channel(0);
+	multiplayer_peer->set_transfer_channel(100); // 66
 	multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 	Error err = _send(buf, 2);
 

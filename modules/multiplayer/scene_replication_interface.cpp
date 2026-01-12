@@ -458,7 +458,7 @@ Error SceneReplicationInterface::_send_raw(const uint8_t *p_buffer, int p_size, 
 
 	Ref<MultiplayerPeer> peer = multiplayer->get_multiplayer_peer();
 	ERR_FAIL_COND_V(peer.is_null(), ERR_UNCONFIGURED);
-	peer->set_transfer_channel(0);
+	peer->set_transfer_channel(100); // 66
 	peer->set_transfer_mode(p_reliable ? MultiplayerPeer::TRANSFER_MODE_RELIABLE : MultiplayerPeer::TRANSFER_MODE_UNRELIABLE);
 	return multiplayer->send_command(p_peer, p_buffer, p_size);
 }
@@ -742,7 +742,7 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 
 		if (ofs + 4 + 8 + 4 + size > delta_mtu) {
 			// Send what we got, and reset write.
-			_send_raw(packet_cache.ptr(), ofs, p_peer, true);
+			_send_raw(packet_cache.ptr(), ofs, p_peer, false); // 66 ; now unreliable
 			ofs = 1;
 		}
 		if (size) {
@@ -759,7 +759,7 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 	}
 	if (ofs > 1) {
 		// Got some left over to send.
-		_send_raw(packet_cache.ptr(), ofs, p_peer, true);
+		_send_raw(packet_cache.ptr(), ofs, p_peer, false); // 66 ; now unreliable
 	}
 }
 
@@ -790,6 +790,7 @@ Error SceneReplicationInterface::on_delta_receive(int p_from, const uint8_t *p_b
 		err = MultiplayerSynchronizer::set_state(props, node, vars);
 		ERR_FAIL_COND_V(err != OK, err);
 		ofs += size;
+		sync->notify_sync_receive(); // 66
 		sync->emit_signal(SNAME("delta_synchronized"));
 #ifdef DEBUG_ENABLED
 		_profile_node_data("delta_in", sync->get_instance_id(), size);
@@ -891,6 +892,7 @@ Error SceneReplicationInterface::on_sync_receive(int p_from, const uint8_t *p_bu
 		err = MultiplayerSynchronizer::set_state(props, node, vars);
 		ERR_FAIL_COND_V(err, err);
 		ofs += size;
+		sync->notify_sync_receive(); // 66
 		sync->emit_signal(SNAME("synchronized"));
 #ifdef DEBUG_ENABLED
 		_profile_node_data("sync_in", sync->get_instance_id(), size);

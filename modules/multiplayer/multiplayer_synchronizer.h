@@ -51,6 +51,15 @@ private:
 		Variant value;
 	};
 
+	// 66 begin
+	struct InterpolationState {
+		NodePath prop;
+		Variant from_value;
+		Variant to_value;
+		bool valid = false;
+	};
+	// 66 end
+
 	Ref<SceneReplicationConfig> replication_config;
 	NodePath root_path = NodePath(".."); // Start with parent, like with AnimationPlayer.
 	uint64_t sync_interval_usec = 0;
@@ -67,11 +76,24 @@ private:
 	uint32_t net_id = 0;
 	bool sync_started = false;
 
+	// 66 begin
+	// interpolation state
+	Vector<InterpolationState> interpolation_states;
+	double interpolation_fraction = 0.0;
+	uint64_t last_sync_receive_usec = 0;
+	uint64_t sync_receive_interval_usec = 0;
+	// 66 end
+
 	static Object *_get_prop_target(Object *p_obj, const NodePath &p_prop);
 	void _start();
 	void _stop();
 	void _update_process();
 	Error _watch_changes(uint64_t p_usec);
+	// 66 begin
+	void _apply_interpolation(double p_delta);
+	static Variant _interpolate_variant(const Variant &p_from, const Variant &p_to, double p_fraction);
+	bool _has_interpolate_properties() const;
+	// 66 end
 
 protected:
 	static void _bind_methods();
@@ -119,6 +141,12 @@ public:
 	List<Variant> get_delta_state(uint64_t p_cur_usec, uint64_t p_last_usec, uint64_t &r_indexes);
 	List<NodePath> get_delta_properties(uint64_t p_indexes);
 	SceneReplicationConfig *get_replication_config_ptr() const;
+
+	// 66 begin
+	double get_interpolation_fraction() const;
+	void notify_sync_receive();
+	void reset_interpolation();
+	// 66 end
 
 	MultiplayerSynchronizer();
 };
