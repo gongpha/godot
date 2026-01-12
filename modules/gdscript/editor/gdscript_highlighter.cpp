@@ -977,6 +977,29 @@ void GDScriptSyntaxHighlighter::_update_cache() {
 	for (int i = 0; i < notice_list.size(); i++) {
 		comment_markers[notice_list[i]] = COMMENT_MARKER_NOTICE;
 	}
+
+	// 66 begin
+	comment_marker_colors[COMMENT_MARKER_CUSTOM1] = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom1_color");
+	comment_marker_colors[COMMENT_MARKER_CUSTOM2] = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom2_color");
+	comment_marker_colors[COMMENT_MARKER_CUSTOM3] = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom3_color");
+	comment_marker_colors[COMMENT_MARKER_CUSTOM4] = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom4_color");
+	Vector<String> custom1_list = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom1_list").operator String().split(",", false);
+	for (int i = 0; i < custom1_list.size(); i++) {
+		comment_markers[custom1_list[i]] = COMMENT_MARKER_CUSTOM1;
+	}
+	Vector<String> custom2_list = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom2_list").operator String().split(",", false);
+	for (int i = 0; i < custom2_list.size(); i++) {
+		comment_markers[custom2_list[i]] = COMMENT_MARKER_CUSTOM2;
+	}
+	Vector<String> custom3_list = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom3_list").operator String().split(",", false);
+	for (int i = 0; i < custom3_list.size(); i++) {
+		comment_markers[custom3_list[i]] = COMMENT_MARKER_CUSTOM3;
+	}
+	Vector<String> custom4_list = EDITOR_GET("text_editor/theme/highlighting/comment_markers/custom4_list").operator String().split(",", false);
+	for (int i = 0; i < custom4_list.size(); i++) {
+		comment_markers[custom4_list[i]] = COMMENT_MARKER_CUSTOM4;
+	}
+	// 66 end
 }
 
 void GDScriptSyntaxHighlighter::add_color_region(ColorRegion::Type p_type, const String &p_start_key, const String &p_end_key, const Color &p_color, bool p_line_only, bool p_r_prefix) {

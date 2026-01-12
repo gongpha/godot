@@ -752,6 +752,12 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 	_initial_set("text_editor/theme/highlighting/comment_markers/critical_list", "ALERT,ATTENTION,CAUTION,CRITICAL,DANGER,SECURITY");
 	_initial_set("text_editor/theme/highlighting/comment_markers/warning_list", "BUG,DEPRECATED,FIXME,HACK,TASK,TBD,TODO,WARNING");
 	_initial_set("text_editor/theme/highlighting/comment_markers/notice_list", "INFO,NOTE,NOTICE,TEST,TESTING");
+	// 66 begin
+	_initial_set("text_editor/theme/highlighting/comment_markers/custom1_list", "serveronly,clientserver");
+	_initial_set("text_editor/theme/highlighting/comment_markers/custom2_list", "");
+	_initial_set("text_editor/theme/highlighting/comment_markers/custom3_list", "");
+	_initial_set("text_editor/theme/highlighting/comment_markers/custom4_list", "");
+	// 66 end
 
 	// Appearance
 	EDITOR_SETTING_BASIC(Variant::BOOL, PROPERTY_HINT_NONE, "text_editor/appearance/enable_inline_color_picker", true, "");
@@ -1781,6 +1787,12 @@ HashMap<StringName, Color> EditorSettings::get_godot2_text_editor_theme() {
 	colors["text_editor/theme/highlighting/comment_markers/critical_color"] = Color(0.77, 0.35, 0.35);
 	colors["text_editor/theme/highlighting/comment_markers/warning_color"] = Color(0.72, 0.61, 0.48);
 	colors["text_editor/theme/highlighting/comment_markers/notice_color"] = Color(0.56, 0.67, 0.51);
+	// 66 begin
+	colors["text_editor/theme/highlighting/comment_markers/custom1_color"] = Color(0.769, 0.349, 1.0);
+	colors["text_editor/theme/highlighting/comment_markers/custom2_color"] = Color(0.75, 0.39, 0.03);
+	colors["text_editor/theme/highlighting/comment_markers/custom3_color"] = Color(0.24, 0.54, 0.09);
+	colors["text_editor/theme/highlighting/comment_markers/custom4_color"] = Color(0.769, 0.349, 1.0);
+	// 66 end
 	return colors;
 }
 
