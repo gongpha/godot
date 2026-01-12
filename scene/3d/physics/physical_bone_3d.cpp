@@ -85,6 +85,49 @@ bool PhysicalBone3D::is_using_custom_integrator() {
 	return custom_integrator;
 }
 
+// 66 begin
+void PhysicalBone3D::_apply_body_mode() {
+	if (freeze) {
+		switch (freeze_mode) {
+			case FREEZE_MODE_STATIC: {
+				set_body_mode(PhysicsServer3D::BODY_MODE_STATIC);
+			} break;
+			case FREEZE_MODE_KINEMATIC: {
+				set_body_mode(PhysicsServer3D::BODY_MODE_KINEMATIC);
+			} break;
+		}
+	} else if (_internal_simulate_physics) {
+		set_body_mode(PhysicsServer3D::BODY_MODE_RIGID);
+	}
+}
+
+void PhysicalBone3D::set_freeze_enabled(bool p_freeze) {
+	if (p_freeze == freeze) {
+		return;
+	}
+
+	freeze = p_freeze;
+	_apply_body_mode();
+}
+
+bool PhysicalBone3D::is_freeze_enabled() const {
+	return freeze;
+}
+
+void PhysicalBone3D::set_freeze_mode(FreezeMode p_freeze_mode) {
+	if (p_freeze_mode == freeze_mode) {
+		return;
+	}
+
+	freeze_mode = p_freeze_mode;
+	_apply_body_mode();
+}
+
+PhysicalBone3D::FreezeMode PhysicalBone3D::get_freeze_mode() const {
+	return freeze_mode;
+}
+// 66 end
+
 void PhysicalBone3D::reset_physics_simulation_state() {
 	if (simulate_physics) {
 		_start_physics_simulation();
@@ -793,6 +836,13 @@ void PhysicalBone3D::_sync_body_state(PhysicsDirectBodyState3D *p_state) {
 
 	linear_velocity = p_state->get_linear_velocity();
 	angular_velocity = p_state->get_angular_velocity();
+
+	// 66 begin
+	if (sleeping != p_state->is_sleeping()) {
+		sleeping = p_state->is_sleeping();
+		emit_signal(SceneStringName(sleeping_state_changed));
+	}
+	// 66 end
 }
 
 void PhysicalBone3D::_body_state_changed(PhysicsDirectBodyState3D *p_state) {
@@ -885,6 +935,17 @@ void PhysicalBone3D::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_can_sleep", "able_to_sleep"), &PhysicalBone3D::set_can_sleep);
 	ClassDB::bind_method(D_METHOD("is_able_to_sleep"), &PhysicalBone3D::is_able_to_sleep);
 
+	// 66 begin
+	ClassDB::bind_method(D_METHOD("set_sleeping", "sleeping"), &PhysicalBone3D::set_sleeping);
+	ClassDB::bind_method(D_METHOD("is_sleeping"), &PhysicalBone3D::is_sleeping);
+
+	ClassDB::bind_method(D_METHOD("set_freeze_enabled", "freeze_mode"), &PhysicalBone3D::set_freeze_enabled);
+	ClassDB::bind_method(D_METHOD("is_freeze_enabled"), &PhysicalBone3D::is_freeze_enabled);
+
+	ClassDB::bind_method(D_METHOD("set_freeze_mode", "freeze_mode"), &PhysicalBone3D::set_freeze_mode);
+	ClassDB::bind_method(D_METHOD("get_freeze_mode"), &PhysicalBone3D::get_freeze_mode);
+	// 66 end
+
 	GDVIRTUAL_BIND(_integrate_forces, "state");
 
 	ADD_GROUP("Joint", "joint_");
@@ -906,9 +967,21 @@ void PhysicalBone3D::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "linear_velocity", PROPERTY_HINT_NONE, "suffix:m/s"), "set_linear_velocity", "get_linear_velocity");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR3, "angular_velocity", PROPERTY_HINT_NONE, U"radians_as_degrees,suffix:\u00B0/s"), "set_angular_velocity", "get_angular_velocity");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "can_sleep"), "set_can_sleep", "is_able_to_sleep");
+	// 66 begin
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "sleeping"), "set_sleeping", "is_sleeping");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "freeze"), "set_freeze_enabled", "is_freeze_enabled");
+	ADD_PROPERTY(PropertyInfo(Variant::INT, "freeze_mode", PROPERTY_HINT_ENUM, "Static,Kinematic"), "set_freeze_mode", "get_freeze_mode");
+
+	ADD_SIGNAL(MethodInfo("sleeping_state_changed"));
+	// 66 end
 
 	BIND_ENUM_CONSTANT(DAMP_MODE_COMBINE);
 	BIND_ENUM_CONSTANT(DAMP_MODE_REPLACE);
+
+	// 66 begin
+	BIND_ENUM_CONSTANT(FREEZE_MODE_STATIC);
+	BIND_ENUM_CONSTANT(FREEZE_MODE_KINEMATIC);
+	// 66 end
 
 	BIND_ENUM_CONSTANT(JOINT_TYPE_NONE);
 	BIND_ENUM_CONSTANT(JOINT_TYPE_PIN);
@@ -1276,6 +1349,17 @@ bool PhysicalBone3D::is_able_to_sleep() const {
 	return can_sleep;
 }
 
+// 66 begin
+void PhysicalBone3D::set_sleeping(bool p_sleeping) {
+	sleeping = p_sleeping;
+	PhysicsServer3D::get_singleton()->body_set_state(get_rid(), PhysicsServer3D::BODY_STATE_SLEEPING, sleeping);
+}
+
+bool PhysicalBone3D::is_sleeping() const {
+	return sleeping;
+}
+// 66 end
+
 PhysicalBone3D::PhysicalBone3D() :
 		PhysicsBody3D(PhysicsServer3D::BODY_MODE_STATIC) {
 	joint = PhysicsServer3D::get_singleton()->joint_create();
@@ -1338,13 +1422,15 @@ void PhysicalBone3D::_start_physics_simulation() {
 		return;
 	}
 	reset_to_rest_position();
-	set_body_mode(PhysicsServer3D::BODY_MODE_RIGID);
+	// 66 begin : use _apply_body_mode to respect freeze state
+	_internal_simulate_physics = true;
+	_apply_body_mode();
+	// 66 end
 	PhysicsServer3D::get_singleton()->body_set_collision_layer(get_rid(), get_collision_layer());
 	PhysicsServer3D::get_singleton()->body_set_collision_mask(get_rid(), get_collision_mask());
 	PhysicsServer3D::get_singleton()->body_set_collision_priority(get_rid(), get_collision_priority());
 	PhysicsServer3D::get_singleton()->body_set_state_sync_callback(get_rid(), callable_mp(this, &PhysicalBone3D::_body_state_changed));
 	set_as_top_level(true);
-	_internal_simulate_physics = true;
 }
 
 void PhysicalBone3D::_stop_physics_simulation() {

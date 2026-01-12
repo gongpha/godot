@@ -39,6 +39,13 @@ class PhysicalBone3D : public PhysicsBody3D {
 	GDCLASS(PhysicalBone3D, PhysicsBody3D);
 
 public:
+	// 66 begin
+	enum FreezeMode {
+		FREEZE_MODE_STATIC,
+		FREEZE_MODE_KINEMATIC,
+	};
+	// 66 end
+
 	enum DampMode {
 		DAMP_MODE_COMBINE,
 		DAMP_MODE_REPLACE,
@@ -183,6 +190,11 @@ private:
 	Vector3 angular_velocity;
 	real_t gravity_scale = 1.0;
 	bool can_sleep = true;
+	// 66 begin
+	bool sleeping = false;
+	bool freeze = false;
+	FreezeMode freeze_mode = FREEZE_MODE_STATIC;
+	// 66 end
 
 	bool custom_integrator = false;
 
@@ -202,6 +214,10 @@ protected:
 	void _body_state_changed(PhysicsDirectBodyState3D *p_state);
 
 	static void _bind_methods();
+
+	// 66 begin
+	void _apply_body_mode();
+	// 66 end
 
 private:
 	void _sync_body_state(PhysicsDirectBodyState3D *p_state);
@@ -285,6 +301,17 @@ public:
 	void set_can_sleep(bool p_active);
 	bool is_able_to_sleep() const;
 
+	// 66 begin
+	void set_sleeping(bool p_sleeping);
+	bool is_sleeping() const;
+
+	void set_freeze_enabled(bool p_freeze);
+	bool is_freeze_enabled() const;
+
+	void set_freeze_mode(FreezeMode p_freeze_mode);
+	FreezeMode get_freeze_mode() const;
+	// 66 end
+
 	void apply_central_impulse(const Vector3 &p_impulse);
 	void apply_impulse(const Vector3 &p_impulse, const Vector3 &p_position = Vector3());
 
@@ -304,3 +331,4 @@ private:
 
 VARIANT_ENUM_CAST(PhysicalBone3D::JointType);
 VARIANT_ENUM_CAST(PhysicalBone3D::DampMode);
+VARIANT_ENUM_CAST(PhysicalBone3D::FreezeMode); // 66
