@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<class name="AudioStreamOggOpus" inherits="AudioStream" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../doc/class.xsd">
+	<brief_description>
+		An audio stream that decodes Ogg Opus audio files.
+	</brief_description>
+	<description>
+	</description>
+	<tutorials>
+	</tutorials>
+	<methods>
+	</methods>
+	<members>
+	</members>
+</class>
