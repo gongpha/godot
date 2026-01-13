@@ -146,6 +146,7 @@ public:
 	double get_interpolation_fraction() const;
 	void notify_sync_receive();
 	void reset_interpolation();
+	void request_full_state_update();
 	// 66 end
 
 	MultiplayerSynchronizer();

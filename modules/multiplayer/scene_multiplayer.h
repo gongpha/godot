@@ -200,6 +200,10 @@ public:
 	void set_max_delta_packet_size(int p_size);
 	int get_max_delta_packet_size() const;
 
+	// 66 begin
+	Ref<SceneReplicationInterface> get_replicator() const { return replicator; }
+	// 66 end
+
 	SceneMultiplayer();
 	~SceneMultiplayer();
 };

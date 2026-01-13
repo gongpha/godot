@@ -33,6 +33,9 @@
 #include "core/config/engine.h"
 #include "core/os/os.h"
 #include "scene/main/multiplayer_api.h"
+// 66 begin
+#include "scene_multiplayer.h"
+// 66 end
 
 Object *MultiplayerSynchronizer::_get_prop_target(Object *p_obj, const NodePath &p_path) {
 	if (p_path.get_name_count() == 0) {
@@ -290,6 +293,7 @@ void MultiplayerSynchronizer::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_interpolation_fraction"), &MultiplayerSynchronizer::get_interpolation_fraction);
 	ClassDB::bind_method(D_METHOD("notify_sync_receive"), &MultiplayerSynchronizer::notify_sync_receive);
 	ClassDB::bind_method(D_METHOD("reset_interpolation"), &MultiplayerSynchronizer::reset_interpolation);
+	ClassDB::bind_method(D_METHOD("request_full_state_update"), &MultiplayerSynchronizer::request_full_state_update);
 	// 66 end
 
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "root_path"), "set_root_path", "get_root_path");
@@ -442,11 +446,23 @@ List<Variant> MultiplayerSynchronizer::get_delta_state(uint64_t p_cur_usec, uint
 	r_indexes = 0;
 	List<Variant> out;
 
+	// 66 begin
+	// if p_last_usec is 0, this is a new peer that has never received any state,
+	// so we MUST send ALL properties regardless of interval or when they last changed
+	const bool send_all = (p_last_usec == 0);
+	// 66 end
+
 	if (last_watch_usec == p_cur_usec) {
 		// We already watched for changes in this frame.
-
-	} else if (p_cur_usec < p_last_usec + delta_interval_usec) {
+		// 66 begin
+		// But ensure watchers are populated if this is the first time
+		if (watchers.is_empty()) {
+			_watch_changes(p_cur_usec);
+		}
+		// 66 end
+	} else if (!send_all && p_cur_usec < p_last_usec + delta_interval_usec) { // 66: added !send_all check
 		// Too soon skip delta synchronization.
+		// 66: But NOT for new peers - they must receive full state immediately
 		return out;
 
 	} else {
@@ -459,7 +475,7 @@ List<Variant> MultiplayerSynchronizer::get_delta_state(uint64_t p_cur_usec, uint
 	const Watcher *ptr = watchers.size() ? watchers.ptr() : nullptr;
 	for (int i = 0; i < watchers.size(); i++) {
 		const Watcher &w = ptr[i];
-		if (w.last_change_usec <= p_last_usec) {
+		if (!send_all && w.last_change_usec <= p_last_usec) { // 66: added !send_all check
 			continue;
 		}
 		out.push_back(w.value);
@@ -718,6 +734,37 @@ void MultiplayerSynchronizer::reset_interpolation() {
 	interpolation_fraction = 0.0;
 	last_sync_receive_usec = 0;
 	sync_receive_interval_usec = 0;
+}
+
+// ts is cl_fullupdate from source engine ?
+void MultiplayerSynchronizer::request_full_state_update() {
+	if (replication_config.is_null()) {
+		return;
+	}
+
+	uint64_t current_usec = OS::get_singleton()->get_ticks_usec();
+
+	// ensure watchers are populated first (they might be empty if no delta sync has happened yet)
+	if (watchers.is_empty()) {
+		_watch_changes(current_usec);
+	}
+
+	// force all watchers to be marked as changed by updating their last_change_usec to now
+	for (int i = 0; i < watchers.size(); i++) {
+		watchers.write[i].last_change_usec = current_usec;
+	}
+
+	// also reset the last watch time so delta interval check passes
+	last_watch_usec = 0;
+
+	// 66: also reset tracking in the replication interface so all peers receive full state
+	Ref<MultiplayerAPI> api = get_multiplayer();
+	if (api.is_valid()) {
+		SceneMultiplayer *sm = Object::cast_to<SceneMultiplayer>(api.ptr());
+		if (sm && sm->get_replicator().is_valid()) {
+			sm->get_replicator()->reset_sync_tracking(this);
+		}
+	}
 }
 // 66 end
 

@@ -61,6 +61,20 @@
 				After calling this, the next sync will be applied directly without interpolation, and interpolation will resume from subsequent syncs.
 			</description>
 		</method>
+		<method name="request_full_state_update">
+			<return type="void" />
+			<description>
+				Forces all "On Change" (watch) properties to be sent in the next delta sync, regardless of whether they have actually changed.
+				Call this on the server when a new client connects to ensure they receive the current state of all properties. This is especially useful for nodes that are not spawned via [MultiplayerSpawner].
+				[b]Example:[/b]
+				[codeblock]
+				func _on_peer_connected(id : int) -> void:
+					# request full state update for all synchronizers
+					for sync in get_tree().get_nodes_in_group("my_synchronizers"):
+						sync.request_full_state_update()
+				[/codeblock]
+			</description>
+		</method>
 		<!-- 66 end -->
 		<method name="set_visibility_for">
 			<return type="void" />
