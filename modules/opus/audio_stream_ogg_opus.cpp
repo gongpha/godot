@@ -110,7 +110,7 @@ int AudioStreamPlaybackOggOpus::_mix_frames(AudioFrame *p_buffer, int p_frames) 
 		return 0;
 	}
 	// libopusfile always decodes at 48kHz. We'll read float stereo regardless of original mapping.
-	const int buf_vals = p_frames * 2; // stereo interleaved
+	//const int buf_vals = p_frames * 2; // stereo interleaved
 	float tmp[FADE_SIZE * 2];
 	int total = 0;
 	while (total < p_frames) {
