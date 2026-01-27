@@ -753,10 +753,9 @@ void QuickOpenResultContainer::_use_default_candidates() {
 
 void QuickOpenResultContainer::_update_fuzzy_search_results() {
 	FuzzySearch fuzzy_search;
+	fuzzy_search.start_offset = 6; // Don't match against "res://" at the start of each filepath.
 	fuzzy_search.set_query(query);
-	fuzzy_search.set_start_offset(6); // Don't match against "res://" at the start of each filepath.
-	fuzzy_search.set_case_sensitive(!query.is_lowercase());
-	fuzzy_search.set_max_results(max_total_results);
+	fuzzy_search.max_results = max_total_results;
 	bool fuzzy_matching = EDITOR_GET("filesystem/quick_open_dialog/enable_fuzzy_matching");
 	int max_misses = EDITOR_GET("filesystem/quick_open_dialog/max_fuzzy_misses");
 	fuzzy_search.allow_subsequences = fuzzy_matching;

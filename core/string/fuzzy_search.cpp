@@ -30,30 +30,30 @@
 
 #include "fuzzy_search.h"
 
-#include "core/variant/typed_array.h"
+constexpr float cull_factor = 0.1f;
+constexpr float cull_cutoff = 30.0f;
+const String boundary_chars_66 = "/\\-_.";
 
-const String boundary_chars = "/\\-_. ";
-
-static bool _is_valid_interval(const Vector2i &p_interval) {
+static bool _is_valid_interval_66(const Vector2i &p_interval) {
 	// Empty intervals are represented as (-1, -1).
 	return p_interval.x >= 0 && p_interval.y >= p_interval.x;
 }
 
-static Vector2i _extend_interval(const Vector2i &p_a, const Vector2i &p_b) {
-	if (!_is_valid_interval(p_a)) {
+static Vector2i _extend_interval_66(const Vector2i &p_a, const Vector2i &p_b) {
+	if (!_is_valid_interval_66(p_a)) {
 		return p_b;
 	}
-	if (!_is_valid_interval(p_b)) {
+	if (!_is_valid_interval_66(p_b)) {
 		return p_a;
 	}
 	return Vector2i(MIN(p_a.x, p_b.x), MAX(p_a.y, p_b.y));
 }
 
-static bool _is_word_boundary(const String &p_str, int p_index) {
+static bool _is_word_boundary_66(const String &p_str, int p_index) {
 	if (p_index == -1 || p_index == p_str.size()) {
 		return true;
 	}
-	return boundary_chars.find_char(p_str[p_index]) != -1;
+	return boundary_chars_66.find_char(p_str[p_index]) != -1;
 }
 
 bool FuzzySearchToken::try_exact_match(FuzzyTokenMatch &p_match, const String &p_target, int p_offset) const {
@@ -107,11 +107,11 @@ void FuzzyTokenMatch::add_substring(int p_substring_start, int p_substring_lengt
 	substrings.append(Vector2i(p_substring_start, p_substring_length));
 	matched_length += p_substring_length;
 	Vector2i substring_interval = { p_substring_start, p_substring_start + p_substring_length - 1 };
-	interval = _extend_interval(interval, substring_interval);
+	interval = _extend_interval_66(interval, substring_interval);
 }
 
 bool FuzzyTokenMatch::intersects(const Vector2i &p_other_interval) const {
-	if (!_is_valid_interval(interval) || !_is_valid_interval(p_other_interval)) {
+	if (!_is_valid_interval_66(interval) || !_is_valid_interval_66(p_other_interval)) {
 		return false;
 	}
 	return interval.y >= p_other_interval.x && interval.x <= p_other_interval.y;
@@ -162,7 +162,7 @@ void FuzzySearchResult::score_token_match(FuzzyTokenMatch &p_match, bool p_case_
 			substring_score *= 2;
 		}
 		// Score matches on a word boundary higher than matches within a word
-		if (_is_word_boundary(target, substring.x - 1) || _is_word_boundary(target, substring.x + substring.y)) {
+		if (_is_word_boundary_66(target, substring.x - 1) || _is_word_boundary_66(target, substring.x + substring.y)) {
 			substring_score += 4;
 		}
 		// Score exact query matches higher than non-compact subsequence matches
@@ -175,10 +175,6 @@ void FuzzySearchResult::score_token_match(FuzzyTokenMatch &p_match, bool p_case_
 
 void FuzzySearchResult::maybe_apply_score_bonus() {
 	// This adds a small bonus to results which match tokens in the same order they appear in the query.
-	if (token_matches.is_empty()) {
-		return;
-	}
-
 	int *token_range_starts = (int *)alloca(sizeof(int) * token_matches.size());
 
 	for (const FuzzyTokenMatch &match : token_matches) {
@@ -198,35 +194,9 @@ void FuzzySearchResult::maybe_apply_score_bonus() {
 
 void FuzzySearchResult::add_token_match(const FuzzyTokenMatch &p_match) {
 	score += p_match.score;
-	match_interval = _extend_interval(match_interval, p_match.interval);
+	match_interval = _extend_interval_66(match_interval, p_match.interval);
 	miss_budget -= p_match.get_miss_count();
 	token_matches.append(p_match);
-}
-
-void FuzzyMatch::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_target", "target"), &FuzzyMatch::set_target);
-	ClassDB::bind_method(D_METHOD("get_target"), &FuzzyMatch::get_target);
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "target"), "set_target", "get_target");
-
-	ClassDB::bind_method(D_METHOD("set_score", "score"), &FuzzyMatch::set_score);
-	ClassDB::bind_method(D_METHOD("get_score"), &FuzzyMatch::get_score);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "score"), "set_score", "get_score");
-
-	ClassDB::bind_method(D_METHOD("set_original_index", "original_index"), &FuzzyMatch::set_original_index);
-	ClassDB::bind_method(D_METHOD("get_original_index"), &FuzzyMatch::get_original_index);
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "original_index"), "set_original_index", "get_original_index");
-
-	ClassDB::bind_method(D_METHOD("get_matched_substrings"), &FuzzyMatch::get_matched_substrings);
-}
-
-TypedArray<Vector2i> FuzzyMatch::get_matched_substrings() {
-	TypedArray<Vector2i> substrings;
-	for (const FuzzyTokenMatch &match : result.token_matches) {
-		for (const Vector2i &substring : match.substrings) {
-			substrings.append(substring);
-		}
-	}
-	return substrings;
 }
 
 void remove_low_scores(Vector<FuzzySearchResult> &p_results, float p_cull_score) {
@@ -252,50 +222,24 @@ void remove_low_scores(Vector<FuzzySearchResult> &p_results, float p_cull_score)
 	p_results.resize(j + 1);
 }
 
-void FuzzySearch::update_tokens() {
-	tokens.clear();
-
-	for (const String &string : query.split(" ", false)) {
-		tokens.append({
-				static_cast<int>(tokens.size()),
-				case_sensitive ? string : string.to_lower(),
-		});
-	}
-
-	struct TokenComparator {
-		bool operator()(const FuzzySearchToken &A, const FuzzySearchToken &B) const {
-			if (A.string.length() == B.string.length()) {
-				return A.idx < B.idx;
-			}
-			return A.string.length() > B.string.length();
-		}
-	};
-
-	// Prioritize matching longer tokens before shorter ones since match overlaps are not accepted.
-	tokens.sort_custom<TokenComparator>();
-	dirty_tokens = false;
-}
-
 void FuzzySearch::sort_and_filter(Vector<FuzzySearchResult> &p_results) const {
 	if (p_results.is_empty()) {
 		return;
 	}
 
-	if (filter_low_scores) {
-		float avg_score = 0;
-		float max_score = 0;
+	float avg_score = 0;
+	float max_score = 0;
 
-		for (const FuzzySearchResult &result : p_results) {
-			avg_score += result.score;
-			max_score = MAX(max_score, result.score);
-		}
-
-		// TODO: Tune scoring and culling here to display fewer subsequence soup matches when good matches
-		//  are available.
-		avg_score /= p_results.size();
-		float cull_score = MIN(filter_cutoff, Math::lerp(avg_score, max_score, filter_factor));
-		remove_low_scores(p_results, cull_score);
+	for (const FuzzySearchResult &result : p_results) {
+		avg_score += result.score;
+		max_score = MAX(max_score, result.score);
 	}
+
+	// TODO: Tune scoring and culling here to display fewer subsequence soup matches when good matches
+	//  are available.
+	avg_score /= p_results.size();
+	float cull_score = MIN(cull_cutoff, Math::lerp(avg_score, max_score, cull_factor));
+	remove_low_scores(p_results, cull_score);
 
 	struct FuzzySearchResultComparator {
 		bool operator()(const FuzzySearchResult &p_lhs, const FuzzySearchResult &p_rhs) const {
@@ -321,23 +265,37 @@ void FuzzySearch::sort_and_filter(Vector<FuzzySearchResult> &p_results) const {
 }
 
 void FuzzySearch::set_query(const String &p_query) {
-	query = p_query;
-	dirty_tokens = true;
+	set_query(p_query, !p_query.is_lowercase());
 }
 
-void FuzzySearch::set_case_sensitive(bool p_case_sensitive) {
+void FuzzySearch::set_query(const String &p_query, bool p_case_sensitive) {
+	tokens.clear();
 	case_sensitive = p_case_sensitive;
-	dirty_tokens = true;
-}
 
-bool FuzzySearch::search(const String &p_target, FuzzySearchResult &r_result) const {
-	if (dirty_tokens) {
-		((FuzzySearch *)this)->update_tokens();
+	for (const String &string : p_query.split(" ", false)) {
+		tokens.append({
+				static_cast<int>(tokens.size()),
+				p_case_sensitive ? string : string.to_lower(),
+		});
 	}
 
-	r_result.target = p_target;
-	r_result.dir_index = p_target.rfind_char('/');
-	r_result.miss_budget = max_misses;
+	struct TokenComparator {
+		bool operator()(const FuzzySearchToken &A, const FuzzySearchToken &B) const {
+			if (A.string.length() == B.string.length()) {
+				return A.idx < B.idx;
+			}
+			return A.string.length() > B.string.length();
+		}
+	};
+
+	// Prioritize matching longer tokens before shorter ones since match overlaps are not accepted.
+	tokens.sort_custom<TokenComparator>();
+}
+
+bool FuzzySearch::search(const String &p_target, FuzzySearchResult &p_result) const {
+	p_result.target = p_target;
+	p_result.dir_index = p_target.rfind_char('/');
+	p_result.miss_budget = max_misses;
 
 	String adjusted_target = case_sensitive ? p_target : p_target.to_lower();
 
@@ -351,22 +309,22 @@ bool FuzzySearch::search(const String &p_target, FuzzySearchResult &r_result) co
 
 		while (true) {
 			FuzzyTokenMatch match;
-			if (exact_token_matches) {
-				if (!token.try_exact_match(match, adjusted_target, offset)) {
+			if (allow_subsequences) {
+				if (!token.try_fuzzy_match(match, adjusted_target, offset, p_result.miss_budget)) {
 					break;
 				}
 			} else {
-				if (!token.try_fuzzy_match(match, adjusted_target, offset, r_result.miss_budget)) {
+				if (!token.try_exact_match(match, adjusted_target, offset)) {
 					break;
 				}
 			}
-			if (r_result.can_add_token_match(match)) {
-				r_result.score_token_match(match, match.is_case_insensitive(p_target, adjusted_target));
+			if (p_result.can_add_token_match(match)) {
+				p_result.score_token_match(match, match.is_case_insensitive(p_target, adjusted_target));
 				if (best_match.token_idx == -1 || best_match.score < match.score) {
 					best_match = match;
 				}
 			}
-			if (_is_valid_interval(match.interval)) {
+			if (_is_valid_interval_66(match.interval)) {
 				offset = match.interval.x + 1;
 			} else {
 				break;
@@ -377,91 +335,23 @@ bool FuzzySearch::search(const String &p_target, FuzzySearchResult &r_result) co
 			return false;
 		}
 
-		r_result.add_token_match(best_match);
+		p_result.add_token_match(best_match);
 	}
 
-	if (r_result.match_interval.x == -1) {
-		// Reject matches which rely entirely on misses.
-		return false;
-	}
-
-	r_result.maybe_apply_score_bonus();
+	p_result.maybe_apply_score_bonus();
 	return true;
 }
 
-void FuzzySearch::search_all(const PackedStringArray &p_targets, Vector<FuzzySearchResult> &r_results) const {
-	r_results.clear();
+void FuzzySearch::search_all(const PackedStringArray &p_targets, Vector<FuzzySearchResult> &p_results) const {
+	p_results.clear();
 
 	for (int i = 0; i < p_targets.size(); i++) {
 		FuzzySearchResult result;
 		result.original_index = i;
 		if (search(p_targets[i], result)) {
-			r_results.append(result);
+			p_results.append(result);
 		}
 	}
 
-	sort_and_filter(r_results);
-}
-
-Ref<FuzzyMatch> FuzzySearch::search_wrapped(const String &p_target) const {
-	FuzzySearchResult result;
-	if (search(p_target, result)) {
-		Ref<FuzzyMatch> wrapped;
-		wrapped.instantiate();
-		wrapped->result = result;
-		return wrapped;
-	}
-	return nullptr;
-}
-
-TypedArray<Ref<FuzzyMatch>> FuzzySearch::search_all_wrapped(const PackedStringArray &p_targets) const {
-	Vector<FuzzySearchResult> results;
-	TypedArray<Ref<FuzzyMatch>> wrapped_results;
-
-	search_all(p_targets, results);
-	for (FuzzySearchResult result : results) {
-		Ref<FuzzyMatch> wrapped;
-		wrapped.instantiate();
-		wrapped->result = result;
-		wrapped_results.append(wrapped);
-	}
-
-	return wrapped_results;
-}
-
-void FuzzySearch::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("set_query", "query"), &FuzzySearch::set_query);
-	ClassDB::bind_method(D_METHOD("get_query"), &FuzzySearch::get_query);
-	ADD_PROPERTY(PropertyInfo(Variant::STRING, "query"), "set_query", "get_query");
-
-	ClassDB::bind_method(D_METHOD("set_max_results", "max_results"), &FuzzySearch::set_max_results);
-	ClassDB::bind_method(D_METHOD("get_max_results"), &FuzzySearch::get_max_results);
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_results"), "set_max_results", "get_max_results");
-
-	ClassDB::bind_method(D_METHOD("set_max_misses", "max_misses"), &FuzzySearch::set_max_misses);
-	ClassDB::bind_method(D_METHOD("get_max_misses"), &FuzzySearch::get_max_misses);
-	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_misses"), "set_max_misses", "get_max_misses");
-
-	ClassDB::bind_method(D_METHOD("set_use_exact_tokens", "use_exact_tokens"), &FuzzySearch::set_use_exact_tokens);
-	ClassDB::bind_method(D_METHOD("get_use_exact_tokens"), &FuzzySearch::get_use_exact_tokens);
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_exact_tokens"), "set_use_exact_tokens", "get_use_exact_tokens");
-
-	ClassDB::bind_method(D_METHOD("set_case_sensitive", "case_sensitive"), &FuzzySearch::set_case_sensitive);
-	ClassDB::bind_method(D_METHOD("get_case_sensitive"), &FuzzySearch::get_case_sensitive);
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "case_sensitive"), "set_case_sensitive", "get_case_sensitive");
-
-	ClassDB::bind_method(D_METHOD("set_filter_low_scores", "filter_low_scores"), &FuzzySearch::set_filter_low_scores);
-	ClassDB::bind_method(D_METHOD("get_filter_low_scores"), &FuzzySearch::get_filter_low_scores);
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "filter_low_scores"), "set_filter_low_scores", "get_filter_low_scores");
-
-	ClassDB::bind_method(D_METHOD("set_filter_factor", "filter_factor"), &FuzzySearch::set_filter_factor);
-	ClassDB::bind_method(D_METHOD("get_filter_factor"), &FuzzySearch::get_filter_factor);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "filter_factor"), "set_filter_factor", "get_filter_factor");
-
-	ClassDB::bind_method(D_METHOD("set_filter_cutoff", "filter_cutoff"), &FuzzySearch::set_filter_cutoff);
-	ClassDB::bind_method(D_METHOD("get_filter_cutoff"), &FuzzySearch::get_filter_cutoff);
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "filter_cutoff"), "set_filter_cutoff", "get_filter_cutoff");
-
-	ClassDB::bind_method(D_METHOD("search", "target"), &FuzzySearch::search_wrapped);
-	ClassDB::bind_method(D_METHOD("search_all", "targets"), &FuzzySearch::search_all_wrapped);
+	sort_and_filter(p_results);
 }
