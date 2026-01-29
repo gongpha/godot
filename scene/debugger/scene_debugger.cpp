@@ -33,10 +33,12 @@
 #include "core/config/project_settings.h"
 #include "core/debugger/debugger_marshalls.h"
 #include "core/debugger/engine_debugger.h"
+#include "core/input/input.h"
 #include "core/io/dir_access.h"
 #include "core/io/marshalls.h"
 #include "core/io/resource_loader.h"
 #include "core/io/resource_saver.h"
+#include "core/math/geometry_3d.h"
 #include "core/math/math_fieldwise.h"
 #include "core/object/script_language.h"
 #include "core/os/time.h"
@@ -2964,11 +2966,11 @@ void RuntimeNodeSelect::_set_camera_freelook_enabled(bool p_enabled) {
 		previous_mouse_position = SceneTree::get_singleton()->get_root()->get_mouse_position();
 
 		// Hide mouse like in an FPS (warping doesn't work).
-		Input::get_singleton()->set_mouse_mode_override(Input::MOUSE_MODE_CAPTURED);
+		Input::get_singleton()->set_mouse_mode_override(Input::MouseMode::MOUSE_MODE_CAPTURED);
 
 	} else {
 		// Restore mouse.
-		Input::get_singleton()->set_mouse_mode_override(Input::MOUSE_MODE_VISIBLE);
+		Input::get_singleton()->set_mouse_mode_override(Input::MouseMode::MOUSE_MODE_VISIBLE);
 
 		// Restore the previous mouse position when leaving freelook mode.
 		// This is done because leaving `Input.MOUSE_MODE_CAPTURED` will center the cursor
