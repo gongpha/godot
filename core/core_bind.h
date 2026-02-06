@@ -317,6 +317,13 @@ public:
 
 	OS();
 	~OS();
+
+	// 66 begin
+
+	String wine_get_version() const;
+	String wine_get_host_version() const;
+
+	// 66 end
 };
 
 class Geometry2D : public Object {

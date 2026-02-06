@@ -879,6 +879,13 @@ void OS::_bind_methods() {
 	BIND_ENUM_CONSTANT(STD_HANDLE_FILE);
 	BIND_ENUM_CONSTANT(STD_HANDLE_PIPE);
 	BIND_ENUM_CONSTANT(STD_HANDLE_UNKNOWN);
+
+	// 66 begin
+
+	ClassDB::bind_method(D_METHOD("wine_get_version"), &OS::wine_get_version);
+	ClassDB::bind_method(D_METHOD("wine_get_host_version"), &OS::wine_get_host_version);
+
+	// 66 end
 }
 
 OS::OS() {
@@ -894,6 +901,18 @@ OS::~OS() {
 		logger_bind->clear();
 	}
 }
+
+// 66 begin
+
+String OS::wine_get_version() const {
+	return ::OS::get_singleton()->wine_get_version();
+}
+
+String OS::get_device_unique_id() const {
+	return ::OS::get_singleton()->get_device_unique_id();
+}
+
+// 66 end
 
 ////// Geometry2D //////
 

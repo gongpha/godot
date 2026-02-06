@@ -2921,3 +2921,38 @@ OS_Windows::OS_Windows(HINSTANCE _hInstance) {
 OS_Windows::~OS_Windows() {
 	CoUninitialize();
 }
+
+// 66 begin
+
+// from https://stackoverflow.com/a/42333249
+String OS_Windows::wine_get_version() const {
+	static const char *(CDECL *pwine_get_version)(void);
+	HMODULE hntdll = GetModuleHandle("ntdll.dll");
+	if (!hntdll) {
+		return String();
+	}
+
+	pwine_get_version = (void *)GetProcAddress(hntdll, "wine_get_version");
+	if (pwine_get_version) {
+		return String(pwine_get_version());
+	}
+
+	return String();
+}
+
+String OS_Windows::wine_get_host_version() const {
+	static const char *(CDECL *pwine_get_host_version)(void);
+	HMODULE hntdll = GetModuleHandle("ntdll.dll");
+	if (!hntdll) {
+		return String();
+	}
+
+	pwine_get_host_version = (void *)GetProcAddress(hntdll, "wine_get_host_version");
+	if (pwine_get_host_version) {
+		return String(pwine_get_host_version());
+	}
+
+	return String();
+}
+
+// 66 end

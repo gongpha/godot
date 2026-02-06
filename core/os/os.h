@@ -400,4 +400,11 @@ public:
 
 	OS();
 	virtual ~OS();
+
+	// 66 begin
+
+	virtual String wine_get_version() const { return String(); }
+	virtual String wine_get_host_version() const { return String(); }
+
+	// 66 end
 };

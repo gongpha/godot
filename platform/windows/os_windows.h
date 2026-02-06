@@ -276,4 +276,11 @@ public:
 	HINSTANCE get_hinstance() { return hInstance; }
 	OS_Windows(HINSTANCE _hInstance);
 	~OS_Windows();
+
+	// 66 begin
+
+	virtual String wine_get_version() const;
+	virtual String wine_get_host_version() const;
+
+	// 66 end
 };
