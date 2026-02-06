@@ -488,56 +488,56 @@ void EditorHelp::_add_type_icon(const String &p_type, int p_size, const String &
 
 // Macros for assigning the deprecated/experimental marks to class members in overview.
 
-#define DEPRECATED_DOC_TAG                                                                   \
-	class_desc->push_font(theme_cache.doc_bold_font);                                        \
+#define DEPRECATED_DOC_TAG \
+	class_desc->push_font(theme_cache.doc_bold_font); \
 	class_desc->push_color(get_theme_color(SNAME("error_color"), EditorStringName(Editor))); \
-	Ref<Texture2D> error_icon = get_editor_theme_icon(SNAME("StatusError"));                 \
-	class_desc->add_image(error_icon, error_icon->get_width(), error_icon->get_height());    \
-	class_desc->add_text(String::chr(160) + TTR("Deprecated"));                              \
-	class_desc->pop();                                                                       \
+	Ref<Texture2D> error_icon = get_editor_theme_icon(SNAME("StatusError")); \
+	class_desc->add_image(error_icon, error_icon->get_width(), error_icon->get_height()); \
+	class_desc->add_text(String::chr(160) + TTR("Deprecated")); \
+	class_desc->pop(); \
 	class_desc->pop();
 
-#define EXPERIMENTAL_DOC_TAG                                                                    \
-	class_desc->push_font(theme_cache.doc_bold_font);                                           \
-	class_desc->push_color(get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));  \
-	Ref<Texture2D> warning_icon = get_editor_theme_icon(SNAME("NodeWarning"));                  \
+#define EXPERIMENTAL_DOC_TAG \
+	class_desc->push_font(theme_cache.doc_bold_font); \
+	class_desc->push_color(get_theme_color(SNAME("warning_color"), EditorStringName(Editor))); \
+	Ref<Texture2D> warning_icon = get_editor_theme_icon(SNAME("NodeWarning")); \
 	class_desc->add_image(warning_icon, warning_icon->get_width(), warning_icon->get_height()); \
-	class_desc->add_text(String::chr(160) + TTR("Experimental"));                               \
-	class_desc->pop();                                                                          \
+	class_desc->add_text(String::chr(160) + TTR("Experimental")); \
+	class_desc->pop(); \
 	class_desc->pop();
 
 // Macros for displaying the deprecated/experimental info in class member descriptions.
 
-#define DEPRECATED_DOC_MSG(m_message, m_default_message)                                     \
-	Ref<Texture2D> error_icon = get_editor_theme_icon(SNAME("StatusError"));                 \
-	class_desc->add_image(error_icon, error_icon->get_width(), error_icon->get_height());    \
-	class_desc->add_text(nbsp);                                                              \
+#define DEPRECATED_DOC_MSG(m_message, m_default_message) \
+	Ref<Texture2D> error_icon = get_editor_theme_icon(SNAME("StatusError")); \
+	class_desc->add_image(error_icon, error_icon->get_width(), error_icon->get_height()); \
+	class_desc->add_text(nbsp); \
 	class_desc->push_color(get_theme_color(SNAME("error_color"), EditorStringName(Editor))); \
-	class_desc->push_font(theme_cache.doc_bold_font);                                        \
-	class_desc->add_text(TTR("Deprecated:"));                                                \
-	class_desc->pop();                                                                       \
-	class_desc->pop();                                                                       \
-	class_desc->add_text(" ");                                                               \
-	if ((m_message).is_empty()) {                                                            \
-		class_desc->add_text(m_default_message);                                             \
-	} else {                                                                                 \
-		_add_text(m_message);                                                                \
+	class_desc->push_font(theme_cache.doc_bold_font); \
+	class_desc->add_text(TTR("Deprecated:")); \
+	class_desc->pop(); \
+	class_desc->pop(); \
+	class_desc->add_text(" "); \
+	if ((m_message).is_empty()) { \
+		class_desc->add_text(m_default_message); \
+	} else { \
+		_add_text(m_message); \
 	}
 
-#define EXPERIMENTAL_DOC_MSG(m_message, m_default_message)                                      \
-	Ref<Texture2D> warning_icon = get_editor_theme_icon(SNAME("NodeWarning"));                  \
+#define EXPERIMENTAL_DOC_MSG(m_message, m_default_message) \
+	Ref<Texture2D> warning_icon = get_editor_theme_icon(SNAME("NodeWarning")); \
 	class_desc->add_image(warning_icon, warning_icon->get_width(), warning_icon->get_height()); \
-	class_desc->add_text(nbsp);                                                                 \
-	class_desc->push_color(get_theme_color(SNAME("warning_color"), EditorStringName(Editor)));  \
-	class_desc->push_font(theme_cache.doc_bold_font);                                           \
-	class_desc->add_text(TTR("Experimental:"));                                                 \
-	class_desc->pop();                                                                          \
-	class_desc->pop();                                                                          \
-	class_desc->add_text(" ");                                                                  \
-	if ((m_message).is_empty()) {                                                               \
-		class_desc->add_text(m_default_message);                                                \
-	} else {                                                                                    \
-		_add_text(m_message);                                                                   \
+	class_desc->add_text(nbsp); \
+	class_desc->push_color(get_theme_color(SNAME("warning_color"), EditorStringName(Editor))); \
+	class_desc->push_font(theme_cache.doc_bold_font); \
+	class_desc->add_text(TTR("Experimental:")); \
+	class_desc->pop(); \
+	class_desc->pop(); \
+	class_desc->add_text(" "); \
+	if ((m_message).is_empty()) { \
+		class_desc->add_text(m_default_message); \
+	} else { \
+		_add_text(m_message); \
 	}
 
 void EditorHelp::_add_method(const DocData::MethodDoc &p_method, bool p_overview, bool p_override) {
@@ -4681,7 +4681,7 @@ void EditorHelpBitTooltip::_notification(int p_what) {
 				if (Input::get_singleton()->is_action_just_pressed(SNAME("ui_cancel"), true)) {
 					queue_free();
 					get_parent_viewport()->set_input_as_handled();
-				} else if (Input::get_singleton()->is_anything_pressed_except_mouse()) {
+				} else if (Input::get_singleton()->is_any_key_pressed()) {
 					queue_free();
 				} else if (!Input::get_singleton()->get_mouse_button_mask().is_empty()) {
 					if (!_is_mouse_inside_tooltip) {

@@ -3845,21 +3845,21 @@ void SceneTreeDock::_tree_rmb(const Vector2 &p_menu_pos) {
 	bool section_ended = false;
 
 // Marks beginning of a new separated section. When used multiple times in a row, only first use has effect.
-#define BEGIN_SECTION()            \
-	{                              \
-		if (section_ended) {       \
+#define BEGIN_SECTION() \
+	{ \
+		if (section_ended) { \
 			section_ended = false; \
 			menu->add_separator(); \
-		}                          \
-		section_started = true;    \
+		} \
+		section_started = true; \
 	}
 // Marks end of a section.
-#define END_SECTION()                \
-	{                                \
-		if (section_started) {       \
-			section_ended = true;    \
+#define END_SECTION() \
+	{ \
+		if (section_started) { \
+			section_ended = true; \
 			section_started = false; \
-		}                            \
+		} \
 	}
 
 	Ref<Script> existing_script;
@@ -4189,7 +4189,10 @@ void SceneTreeDock::save_branch_to_file(const String &p_directory) {
 
 void SceneTreeDock::_focus_node() {
 	Node *node = scene_tree->get_selected();
-	ERR_FAIL_NULL(node);
+	// This method handles the item_icon_double_clicked signal and there is no guarantee anything is actually selected.
+	if (!node) {
+		return;
+	}
 
 	if (node->is_class("CanvasItem")) {
 		CanvasItemEditorPlugin *editor = Object::cast_to<CanvasItemEditorPlugin>(editor_data->get_editor_by_name("2D"));
@@ -4756,7 +4759,7 @@ void SceneTreeDock::_bind_methods() {
 
 	ADD_SIGNAL(MethodInfo("remote_tree_selected"));
 	ADD_SIGNAL(MethodInfo("add_node_used"));
-	ADD_SIGNAL(MethodInfo("node_created", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, "Node")));
+	ADD_SIGNAL(MethodInfo("node_created", PropertyInfo(Variant::OBJECT, "node", PROPERTY_HINT_RESOURCE_TYPE, Node::get_class_static())));
 }
 
 SceneTreeDock *SceneTreeDock::singleton = nullptr;
