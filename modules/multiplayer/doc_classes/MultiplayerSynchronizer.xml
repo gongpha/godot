@@ -21,7 +21,6 @@
 				[param filter] should take a peer ID [int] and return a [bool].
 			</description>
 		</method>
-		<!-- 66 begin -->
 		<method name="get_interpolation_fraction" qualifiers="const">
 			<return type="float" />
 			<description>
@@ -29,7 +28,6 @@
 				Can be used to manually interpolate properties that are not automatically interpolated.
 			</description>
 		</method>
-		<!-- 66 end -->
 		<method name="get_visibility_for" qualifiers="const">
 			<return type="bool" />
 			<param index="0" name="peer" type="int" />
@@ -37,7 +35,6 @@
 				Queries the current visibility for peer [param peer].
 			</description>
 		</method>
-		<!-- 66 begin -->
 		<method name="notify_sync_receive">
 			<return type="void" />
 			<description>
@@ -45,20 +42,11 @@
 				You generally don't need to call this manually unless implementing custom synchronization logic.
 			</description>
 		</method>
-		<!-- 66 end -->
 		<method name="remove_visibility_filter">
 			<return type="void" />
 			<param index="0" name="filter" type="Callable" />
 			<description>
 				Removes a peer visibility filter from this synchronizer.
-			</description>
-		</method>
-		<!-- 66 begin -->
-		<method name="reset_interpolation">
-			<return type="void" />
-			<description>
-				Resets the interpolation state. Call this when teleporting or making large instantaneous changes to prevent smooth interpolation between the old and new positions.
-				After calling this, the next sync will be applied directly without interpolation, and interpolation will resume from subsequent syncs.
 			</description>
 		</method>
 		<method name="request_full_state_update">
@@ -68,14 +56,20 @@
 				Call this on the server when a new client connects to ensure they receive the current state of all properties. This is especially useful for nodes that are not spawned via [MultiplayerSpawner].
 				[b]Example:[/b]
 				[codeblock]
-				func _on_peer_connected(id : int) -> void:
+				func _on_peer_connected(id : int) -&gt; void:
 					# request full state update for all synchronizers
 					for sync in get_tree().get_nodes_in_group("my_synchronizers"):
 						sync.request_full_state_update()
 				[/codeblock]
 			</description>
 		</method>
-		<!-- 66 end -->
+		<method name="reset_interpolation">
+			<return type="void" />
+			<description>
+				Resets the interpolation state. Call this when teleporting or making large instantaneous changes to prevent smooth interpolation between the old and new positions.
+				After calling this, the next sync will be applied directly without interpolation, and interpolation will resume from subsequent syncs.
+			</description>
+		</method>
 		<method name="set_visibility_for">
 			<return type="void" />
 			<param index="0" name="peer" type="int" />

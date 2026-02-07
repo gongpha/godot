@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<class name="FuzzySearch" inherits="RefCounted" experimental="The available options and handling of results may change in the future." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
+<class name="FuzzySearch66" inherits="RefCounted" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../class.xsd">
 	<brief_description>
 		Provides efficient fuzzy string searching and matching capabilities.
 	</brief_description>
@@ -9,7 +9,7 @@
 		[gdscript]
 		var items := ["Potion of Healing", "Greater Health Potion", "Poison Vial"]
 
-		var fuzzy := FuzzySearch.new()
+		var fuzzy := FuzzySearch66.new()
 		fuzzy.query = "health potion"
 
 		for result in fuzzy.search_all(items):
@@ -19,7 +19,7 @@
 		[csharp]
 		string[] items = ["Potion of Healing", "Greater Health Potion", "Poison Vial"];
 
-		FuzzySearch fuzzy = new() { Query = "health potion" };
+		FuzzySearch66 fuzzy = new() { Query = "health potion" };
 
 		foreach (var result in fuzzy.SearchAll(items))
 		{
@@ -33,14 +33,14 @@
 	</tutorials>
 	<methods>
 		<method name="search" qualifiers="const">
-			<return type="FuzzyMatch" />
+			<return type="FuzzyMatch66" />
 			<param index="0" name="target" type="String" />
 			<description>
-				Searches the [param target] for [member query], returning a [FuzzyMatch] instance on success or [code]null[/code] otherwise.
+				Searches the [param target] for [member query], returning a [FuzzyMatch66] instance on success or [code]null[/code] otherwise.
 			</description>
 		</method>
 		<method name="search_all" qualifiers="const">
-			<return type="FuzzyMatch[]" />
+			<return type="Object[]" />
 			<param index="0" name="targets" type="PackedStringArray" />
 			<description>
 				Searches all of [param targets] for [member query] and returns up to the top [member max_results] scoring values. The results are sorted by score in descending order. Low quality results are removed if [member filter_low_scores] is true.

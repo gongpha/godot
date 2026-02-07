@@ -1634,6 +1634,34 @@
 			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/critical_color] color. These must not include spaces or symbols or they will not be highlighted.
 			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
 		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom1_color" type="Color" setter="" getter="">
+			The script editor's custom1 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom1_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom1_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom1_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom2_color" type="Color" setter="" getter="">
+			The script editor's custom2 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom2_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom2_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom2_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom3_color" type="Color" setter="" getter="">
+			The script editor's custom3 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom3_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom3_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom3_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom4_color" type="Color" setter="" getter="">
+			The script editor's custom4 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom4_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom4_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom4_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
 		<member name="text_editor/theme/highlighting/comment_markers/notice_color" type="Color" setter="" getter="">
 			The script editor's notice comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/notice_list].
 		</member>

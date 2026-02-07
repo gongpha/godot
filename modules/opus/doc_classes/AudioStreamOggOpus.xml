@@ -8,7 +8,38 @@
 	<tutorials>
 	</tutorials>
 	<methods>
+		<method name="load_from_buffer" qualifiers="static">
+			<return type="AudioStreamOggOpus" />
+			<param index="0" name="stream_data" type="PackedByteArray" />
+			<description>
+				Creates a new [AudioStreamOggOpus] instance from the given buffer. The buffer must contain Ogg Opus data.
+			</description>
+		</method>
+		<method name="load_from_file" qualifiers="static">
+			<return type="AudioStreamOggOpus" />
+			<param index="0" name="path" type="String" />
+			<description>
+				Creates a new [AudioStreamOggOpus] instance from the given file path. The file must be in Ogg Opus format.
+			</description>
+		</method>
 	</methods>
 	<members>
+		<member name="bar_beats" type="int" setter="set_bar_beats" getter="get_bar_beats" default="4">
+		</member>
+		<member name="beat_count" type="int" setter="set_beat_count" getter="get_beat_count" default="0">
+		</member>
+		<member name="bpm" type="float" setter="set_bpm" getter="get_bpm" default="0.0">
+		</member>
+		<member name="loop" type="bool" setter="set_loop" getter="has_loop" default="false">
+			If [code]true[/code], the audio will play again from the specified [member loop_offset] once it is done playing. Useful for ambient sounds and background music.
+		</member>
+		<member name="loop_offset" type="float" setter="set_loop_offset" getter="get_loop_offset" default="0.0">
+			Time in seconds at which the stream starts after being looped.
+		</member>
+		<member name="tags" type="Dictionary" setter="set_tags" getter="get_tags" default="{}">
+			Contains user-defined tags if found in the Ogg Opus data.
+			Commonly used tags include [code]title[/code], [code]artist[/code], [code]album[/code], [code]tracknumber[/code], and [code]date[/code] ([code]date[/code] does not have a standard date format).
+			[b]Note:[/b] No tag is [i]guaranteed[/i] to be present in every file, so make sure to account for the keys not always existing.
+		</member>
 	</members>
 </class>
