@@ -279,8 +279,8 @@ public:
 
 	// 66 begin
 
-	virtual String wine_get_version() const;
-	virtual String wine_get_host_version() const;
+	virtual String wine_get_version() const override;
+	virtual String wine_get_host_version() const override;
 
 	// 66 end
 };

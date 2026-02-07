@@ -908,8 +908,8 @@ String OS::wine_get_version() const {
 	return ::OS::get_singleton()->wine_get_version();
 }
 
-String OS::get_device_unique_id() const {
-	return ::OS::get_singleton()->get_device_unique_id();
+String OS::wine_get_host_version() const {
+	return ::OS::get_singleton()->wine_get_host_version();
 }
 
 // 66 end
