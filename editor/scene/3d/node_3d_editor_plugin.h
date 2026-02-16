@@ -404,7 +404,7 @@ private:
 		Vector3 rotation_axis;
 		Vector3 view_axis_local;
 		double accumulated_rotation_angle = 0.0;
-		double display_rotation_angle = 0.0;
+		double rotation_angle = 0.0;
 		Vector3 initial_click_vector;
 		Vector3 previous_rotation_vector;
 		bool gizmo_initiated = false;
@@ -566,6 +566,7 @@ protected:
 public:
 	void update_surface() { surface->queue_redraw(); }
 	void update_transform_gizmo_view();
+	void update_transform_gizmo_highlight();
 
 	void set_can_preview(Camera3D *p_preview);
 	void set_state(const Dictionary &p_state);
@@ -687,6 +688,9 @@ public:
 		TRANSFORM_MODE_GLOBAL = 1,
 		TRANSFORM_MODE_LOCAL = 2,
 	};
+
+	real_t gizmo_view_rotation_scale = 1.0;
+	real_t gizmo_view_rotation_shrink = 1.0;
 
 private:
 	EditorSelection *editor_selection = nullptr;
