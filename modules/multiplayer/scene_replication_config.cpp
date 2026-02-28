@@ -30,6 +30,8 @@
 
 #include "scene_replication_config.h"
 
+#include "core/object/class_db.h"
+
 bool SceneReplicationConfig::_set(const StringName &p_name, const Variant &p_value) {
 	String prop_name = p_name;
 
@@ -214,7 +216,7 @@ void SceneReplicationConfig::property_set_watch(const NodePath &p_path, bool p_e
 	}
 }
 
- // 66 begin
+// 66 begin
 bool SceneReplicationConfig::property_get_interpolate(const NodePath &p_path) {
 	List<ReplicationProperty>::Element *E = properties.find(p_path);
 	ERR_FAIL_COND_V(!E, false);
@@ -298,7 +300,7 @@ const List<NodePath> &SceneReplicationConfig::get_watch_properties() {
 	return watch_props;
 }
 
- // 66 begin
+// 66 begin
 const List<NodePath> &SceneReplicationConfig::get_interpolate_properties() {
 	if (dirty) {
 		_update();

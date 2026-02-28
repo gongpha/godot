@@ -31,6 +31,7 @@
 #include "multiplayer_synchronizer.h"
 
 #include "core/config/engine.h"
+#include "core/object/class_db.h"
 #include "core/os/os.h"
 #include "scene/main/multiplayer_api.h"
 // 66 begin

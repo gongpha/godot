@@ -41,7 +41,7 @@ def version_hash_builder(target, source, env):
 #include "core/version.h"
 
 const char *const GODOT_VERSION_HASH = "{git_hash}";
-const uint64_t GODOT_VERSION_TIMESTAMP = {git_timestamp};
+const unsigned long long GODOT_VERSION_TIMESTAMP = {git_timestamp};
 """.format(**source[0].read())
         )
 
@@ -229,7 +229,7 @@ def make_license_header(target, source, env):
 inline constexpr const char *GODOT_LICENSE_TEXT = {{
 {methods.to_raw_cstring(license_text_godot)}
 }};
-    
+
 inline constexpr const char *GODOT_66_LICENSE_TEXT = {{
 {methods.to_raw_cstring(license_text)}
 }};

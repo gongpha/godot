@@ -32,6 +32,7 @@
 
 #include "core/input/input.h"
 #include "core/math/expression.h"
+#include "core/object/class_db.h"
 #include "core/os/keyboard.h"
 #include "core/string/translation_server.h"
 #include "editor/editor_string_names.h"
@@ -91,7 +92,12 @@ void EditorSpinSlider::gui_input(const Ref<InputEvent> &p_event) {
 				}
 				_grab_start();
 			} else {
+				bool grabbing = grabbing_spinner;
 				_grab_end();
+
+				if (deferred_drag_mode && grabbing) {
+					_notify_shared_value_changed(); // Need to be emitted at the end, since the signal doesn't emitted in `set_value_no_signal` method.
+				}
 			}
 		} else if (mb->get_button_index() == MouseButton::RIGHT) {
 			if (mb->is_pressed() && is_grabbing()) {
@@ -749,6 +755,14 @@ bool EditorSpinSlider::is_grabbing() const {
 	return grabbing_grabber || grabbing_spinner;
 }
 
+void EditorSpinSlider::set_deferred_drag_mode_enabled(bool p_enabled) {
+	deferred_drag_mode = p_enabled;
+}
+
+bool EditorSpinSlider::is_deferred_drag_mode_enabled() const {
+	return deferred_drag_mode;
+}
+
 void EditorSpinSlider::_focus_entered(bool p_hide_focus) {
 	if (read_only) {
 		return;
@@ -787,6 +801,9 @@ void EditorSpinSlider::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_editing_integer", "editing_integer"), &EditorSpinSlider::set_editing_integer);
 	ClassDB::bind_method(D_METHOD("is_editing_integer"), &EditorSpinSlider::is_editing_integer);
 
+	ClassDB::bind_method(D_METHOD("set_deferred_drag_mode_enabled", "enabled"), &EditorSpinSlider::set_deferred_drag_mode_enabled, DEFVAL(true));
+	ClassDB::bind_method(D_METHOD("is_deferred_drag_mode_enabled"), &EditorSpinSlider::is_deferred_drag_mode_enabled);
+
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "label"), "set_label", "get_label");
 	ADD_PROPERTY(PropertyInfo(Variant::STRING, "suffix"), "set_suffix", "get_suffix");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "read_only"), "set_read_only", "is_read_only");
@@ -796,6 +813,7 @@ void EditorSpinSlider::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "hide_slider"), "set_hide_slider", "is_hiding_slider");
 #endif
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "editing_integer"), "set_editing_integer", "is_editing_integer");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "deferred_drag_mode"), "set_deferred_drag_mode_enabled", "is_deferred_drag_mode_enabled");
 
 	BIND_ENUM_CONSTANT(CONTROL_STATE_DEFAULT);
 	BIND_ENUM_CONSTANT(CONTROL_STATE_PREFER_SLIDER);

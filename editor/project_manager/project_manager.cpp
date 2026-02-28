@@ -39,6 +39,7 @@
 #include "core/os/os.h"
 #include "core/version.h"
 #include "editor/asset_library/asset_library_editor_plugin.h"
+#include "editor/doc/editor_help.h"
 #include "editor/editor_string_names.h"
 #include "editor/gui/editor_about.h"
 #include "editor/gui/editor_file_dialog.h"
@@ -79,6 +80,8 @@
 #include "servers/physics_3d/physics_server_3d.h"
 #endif // PHYSICS_3D_DISABLED
 
+#include "modules/modules_enabled.gen.h" // For gdscript, mono. (For editor help highlighter).
+
 constexpr int GODOT4_CONFIG_VERSION = 5;
 
 ProjectManager *ProjectManager::singleton = nullptr;
@@ -101,7 +104,7 @@ void ProjectManager::_notification(int p_what) {
 		} break;
 
 		case NOTIFICATION_READY: {
-			DisplayServer::get_singleton()->screen_set_keep_on(EDITOR_GET("interface/editor/keep_screen_on"));
+			DisplayServer::get_singleton()->screen_set_keep_on(EDITOR_GET("interface/editor/display/keep_screen_on"));
 			const int default_sorting = (int)EDITOR_GET("project_manager/sorting_order");
 			filter_option->select(default_sorting);
 			project_list->set_order_option(default_sorting, false);
@@ -1343,7 +1346,7 @@ ProjectManager::ProjectManager() {
 			Input::get_singleton()->set_use_accumulated_input(use_accumulated_input);
 		}
 
-		int display_scale = EDITOR_GET("interface/editor/display_scale");
+		int display_scale = EDITOR_GET("interface/editor/appearance/display_scale");
 
 		switch (display_scale) {
 			case 0:
@@ -1369,7 +1372,7 @@ ProjectManager::ProjectManager() {
 				EditorScale::set_scale(2.0);
 				break;
 			default:
-				EditorScale::set_scale(EDITOR_GET("interface/editor/custom_display_scale"));
+				EditorScale::set_scale(EDITOR_GET("interface/editor/appearance/custom_display_scale"));
 				break;
 		}
 		FileDialog::set_get_icon_callback(callable_mp_static(ProjectManager::_file_dialog_get_icon));
@@ -1378,7 +1381,7 @@ ProjectManager::ProjectManager() {
 		FileDialog::set_default_show_hidden_files(EDITOR_GET("filesystem/file_dialog/show_hidden_files"));
 		FileDialog::set_default_display_mode((FileDialog::DisplayMode)EDITOR_GET("filesystem/file_dialog/display_mode").operator int());
 
-		int swap_cancel_ok = EDITOR_GET("interface/editor/accept_dialog_cancel_ok_buttons");
+		int swap_cancel_ok = EDITOR_GET("interface/editor/appearance/accept_dialog_cancel_ok_buttons");
 		if (swap_cancel_ok != 0) { // 0 is auto, set in register_scene based on DisplayServer.
 			// Swap on means OK first.
 			AcceptDialog::set_swap_cancel_ok(swap_cancel_ok == 2);
@@ -1387,11 +1390,15 @@ ProjectManager::ProjectManager() {
 		OS::get_singleton()->set_low_processor_usage_mode(true);
 	}
 
+#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+	EditorHelpHighlighter::create_singleton();
+#endif
+
 	SceneTree::get_singleton()->get_root()->connect("files_dropped", callable_mp(this, &ProjectManager::_files_dropped));
 
 	// Initialize UI.
 	{
-		int pm_root_dir = EDITOR_GET("interface/editor/ui_layout_direction");
+		int pm_root_dir = EDITOR_GET("interface/editor/localization/ui_layout_direction");
 		Control::set_root_layout_direction(pm_root_dir);
 		Window::set_root_layout_direction(pm_root_dir);
 
@@ -1418,7 +1425,7 @@ ProjectManager::ProjectManager() {
 	root_container->add_child(main_vbox);
 
 	// Title bar.
-	bool can_expand = bool(EDITOR_GET("interface/editor/expand_to_title")) && DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_EXTEND_TO_TITLE);
+	bool can_expand = bool(EDITOR_GET("interface/editor/appearance/expand_to_title")) && DisplayServer::get_singleton()->has_feature(DisplayServer::FEATURE_EXTEND_TO_TITLE);
 
 	{
 		title_bar = memnew(EditorTitleBar);
@@ -1443,7 +1450,7 @@ ProjectManager::ProjectManager() {
 		left_hbox->add_child(title_bar_logo);
 		title_bar_logo->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_show_about));
 
-		bool global_menu = !bool(EDITOR_GET("interface/editor/use_embedded_menu")) && NativeMenu::get_singleton()->has_feature(NativeMenu::FEATURE_GLOBAL_MENU);
+		bool global_menu = !bool(EDITOR_GET("interface/editor/appearance/use_embedded_menu")) && NativeMenu::get_singleton()->has_feature(NativeMenu::FEATURE_GLOBAL_MENU);
 		if (global_menu) {
 			MenuBar *main_menu_bar = memnew(MenuBar);
 			main_menu_bar->set_start_index(0); // Main menu, add to the start of global menu.
@@ -1518,7 +1525,7 @@ ProjectManager::ProjectManager() {
 
 		// 66 begin
 		{
-			Label* notice_label = memnew(Label(TTRC(NOTICE_TEXT)));
+			Label *notice_label = memnew(Label(TTRC(NOTICE_TEXT)));
 			notice_label->set_autowrap_mode(TextServer::AUTOWRAP_WORD_SMART);
 			local_projects_vb->add_child(notice_label);
 		}
@@ -1835,7 +1842,7 @@ ProjectManager::ProjectManager() {
 		ask_update_backup->set_h_size_flags(SIZE_SHRINK_CENTER);
 		ask_update_vb->add_child(ask_update_backup);
 		ask_update_settings->get_ok_button()->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_open_selected_projects_with_migration));
-		int ed_swap_cancel_ok = EDITOR_GET("interface/editor/accept_dialog_cancel_ok_buttons");
+		int ed_swap_cancel_ok = EDITOR_GET("interface/editor/appearance/accept_dialog_cancel_ok_buttons");
 		if (ed_swap_cancel_ok == 0) {
 			ed_swap_cancel_ok = DisplayServer::get_singleton()->get_swap_cancel_ok() ? 2 : 1;
 		}
@@ -1982,6 +1989,11 @@ ProjectManager::ProjectManager() {
 ProjectManager::~ProjectManager() {
 	singleton = nullptr;
 	EditorInspector::cleanup_plugins();
+
+#if defined(MODULE_GDSCRIPT_ENABLED) || defined(MODULE_MONO_ENABLED)
+	EditorHelpHighlighter::free_singleton();
+#endif
+
 	if (EditorSettings::get_singleton()) {
 		EditorSettings::destroy();
 	}
