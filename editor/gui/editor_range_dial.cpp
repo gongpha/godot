@@ -129,8 +129,9 @@ void EditorRangeDial::_notification(int p_what) {
 
 			double mx = EDITOR_GET("interface/inspector/max_drag_zoom_out_value");
 			double zout = Math::abs(get_min()) + get_max();
+			double zoom_out_range = Math::is_zero_approx(zout) ? mx * 2 : MIN(zout, mx * 2);
 
-			max_exp = int(log10(MIN(zout, mx * 2)));
+			max_exp = int(log10(MAX(zoom_out_range, CMP_EPSILON)));
 
 			for (int i = min_exp; i <= max_exp; i++) {
 				const double level = Math::pow(10.0, i);
@@ -139,8 +140,8 @@ void EditorRangeDial::_notification(int p_what) {
 					continue;
 				}
 
-				const double powsize = Math::pow(size / 100.0, 3.0);
-				const double alpha = powsize / (powsize + Math::pow((1 - size / 100), 3));
+				const double powsize = Math::pow(size / 75.0, 3.0);
+				const double alpha = powsize / (powsize + Math::pow((1 - size / 75.0), 3));
 				const double span = get_rect().size.x / size;
 
 				PackedVector2Array lines, lines_highlight, lines_outside, lines_highlight_outside;
@@ -269,7 +270,8 @@ void EditorRangeDial::set_zoom(double p_zoom) {
 
 	double zout = Math::abs(get_min()) + get_max();
 	double mx = EDITOR_GET("interface/inspector/max_drag_zoom_out_value");
-	min_zoom = get_rect().size.x / MIN(zout, mx * 2) / 2;
+	double zoom_out_range = Math::is_zero_approx(zout) ? mx * 2 : MIN(zout, mx * 2);
+	min_zoom = get_rect().size.x / MAX(zoom_out_range, CMP_EPSILON) / 2;
 
 	int precision = is_using_rounded_values() ? 0 : MAX(0, -floor(log10(get_step())));
 	double max_zoom = Math::pow(10, (double)precision + 2);
