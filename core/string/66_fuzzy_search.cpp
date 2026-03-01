@@ -1,6 +1,5 @@
-// copy of core/string/fuzzy_search.h (#107126)
 /**************************************************************************/
-/*  fuzzy_search.cpp                                                      */
+/*  66_fuzzy_search.cpp                                                   */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -29,7 +28,10 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
+// copy of core/string/fuzzy_search.h (#107126)
+
 #include "66_fuzzy_search.h"
+#include "core/object/class_db.h"
 
 #include "core/variant/typed_array.h"
 
