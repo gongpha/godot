@@ -418,7 +418,14 @@ void DisplayServerWayland::_mouse_update_mode() {
 	wayland_thread.pointer_set_constraint(constraint);
 
 	if (wanted_mouse_mode == DisplayServer::MOUSE_MODE_CAPTURED) {
-		WindowData *pointed_win = windows.getptr(wayland_thread.pointer_get_pointed_window_id());
+		WindowID pointed_window_id = wayland_thread.pointer_get_pointed_window_id();
+		if (!windows.has(pointed_window_id)) {
+			pointed_window_id = wayland_thread.pointer_get_last_pointed_window_id();
+		}
+		if (!windows.has(pointed_window_id)) {
+			pointed_window_id = MAIN_WINDOW_ID;
+		}
+		WindowData *pointed_win = windows.getptr(pointed_window_id);
 		ERR_FAIL_NULL(pointed_win);
 		wayland_thread.pointer_set_hint(pointed_win->rect.size / 2);
 	}
