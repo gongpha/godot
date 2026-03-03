@@ -1,6 +1,7 @@
 def can_build(env, _platform):
-    env.module_add_dependencies("opus", ["ogg"])
+    env.module_add_dependencies("opus", ["ogg", "opus"])
     return True
+
 
 def configure(env):
     _ = env
