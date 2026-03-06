@@ -33,6 +33,8 @@
 #include "core/config/engine.h"
 #include "core/config/project_settings.h"
 #include "core/object/class_db.h"
+#include "core/os/os.h"
+#include "scene/main/scene_tree.h"
 #include "servers/rendering/rendering_server.h"
 
 void Light3D::set_param(Param p_param, real_t p_value) {
