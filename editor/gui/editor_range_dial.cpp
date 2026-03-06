@@ -79,11 +79,13 @@ void EditorRangeDial::set_zoom_from_value(double p_value) {
 		return;
 	}
 
-	if (p_value < 1.0) {
+	double value_abs = Math::abs(p_value);
+
+	if (value_abs < 1.0) {
 		int precision = is_using_rounded_values() ? 0 : MAX(0, -floor(log10(p_value)));
 		set_zoom(Math::pow(10, (double)precision + 2));
 	} else {
-		set_zoom(get_rect().size.x / (MAX(1.0, Math::abs(p_value)) * 2) / 2);
+		set_zoom(get_rect().size.x / (MAX(1.0, value_abs) * 2) / 2);
 	}
 }
 
