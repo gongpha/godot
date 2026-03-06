@@ -954,6 +954,86 @@ Array::Array(const Array &p_from) {
 	_ref(p_from);
 }
 
+// 66 begin
+
+void Array::subtract(const Array &p_array) {
+	ERR_FAIL_COND_MSG(_p->read_only, "Array is in read-only state.");
+
+	if (p_array._p->array.is_empty()) {
+		return;
+	}
+
+	Vector<Variant> result;
+	for (int i = 0; i < _p->array.size(); i++) {
+		const Variant &value = _p->array[i];
+		if (p_array.find(value) == -1) {
+			result.push_back(value);
+		}
+	}
+
+	_p->array = std::move(result);
+}
+
+void Array::intersect(const Array &p_array) {
+	ERR_FAIL_COND_MSG(_p->read_only, "Array is in read-only state.");
+
+	if (_p->array.is_empty()) {
+		return;
+	}
+	if (p_array._p->array.is_empty()) {
+		clear();
+		return;
+	}
+
+	Vector<Variant> result;
+	for (int i = 0; i < _p->array.size(); i++) {
+		const Variant &value = _p->array[i];
+		if (p_array.find(value) != -1) {
+			result.push_back(value);
+		}
+	}
+
+	_p->array = std::move(result);
+}
+
+Array Array::difference(const Array &p_array) const {
+	Array result;
+	if (_p->array.is_empty()) {
+		return result;
+	}
+	if (p_array._p->array.is_empty()) {
+		result._p->array = _p->array;
+		return result;
+	}
+
+	for (int i = 0; i < _p->array.size(); i++) {
+		const Variant &value = _p->array[i];
+		if (p_array.find(value) == -1) {
+			result._p->array.push_back(value);
+		}
+	}
+
+	return result;
+}
+
+Array Array::intersection(const Array &p_array) const {
+	Array result;
+	if (_p->array.is_empty() || p_array._p->array.is_empty()) {
+		return result;
+	}
+
+	for (int i = 0; i < _p->array.size(); i++) {
+		const Variant &value = _p->array[i];
+		if (p_array.find(value) != -1) {
+			result._p->array.push_back(value);
+		}
+	}
+
+	return result;
+}
+
+// 66 end
+
 Array::Array(std::initializer_list<Variant> p_init) {
 	_p = memnew(ArrayPrivate);
 	_p->refcount.init();
