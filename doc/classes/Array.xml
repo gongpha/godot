@@ -336,6 +336,13 @@
 				To count how many elements in an array satisfy a condition, see [method reduce].
 			</description>
 		</method>
+		<method name="difference" qualifiers="const">
+			<return type="Array" />
+			<param index="0" name="array" type="Array" />
+			<description>
+				Returns a new array containing elements that are in this array but not in [param array].
+			</description>
+		</method>
 		<method name="duplicate" qualifiers="const">
 			<return type="Array" />
 			<param index="0" name="deep" type="bool" default="false" />
@@ -510,6 +517,36 @@
 				Inserts a new element ([param value]) at a given index ([param position]) in the array. [param position] should be between [code]0[/code] and the array's [method size]. If negative, [param position] is considered relative to the end of the array.
 				Returns [constant OK] on success, or one of the other [enum Error] constants if this method fails.
 				[b]Note:[/b] Every element's index after [param position] needs to be shifted forward, which may have a noticeable performance cost, especially on larger arrays.
+			</description>
+		</method>
+		<method name="intersect">
+			<return type="void" />
+			<param index="0" name="array" type="Array" />
+			<description>
+				Removes elements from this array that are not in [param array], effectively keeping only the intersection between both arrays.
+				[codeblock]
+				var a = [1, 2, 3, 4]
+				var b = [3, 4, 5, 6]
+
+				a.intersect(b)
+				print(a) # Prints [3, 4]
+				[/codeblock]
+				See also [method intersection].
+			</description>
+		</method>
+		<method name="intersection" qualifiers="const">
+			<return type="Array" />
+			<param index="0" name="array" type="Array" />
+			<description>
+				Returns a new array containing elements that are in both this array and [param array].
+				[codeblock]
+				var a = [1, 2, 3, 4]
+				var b = [3, 4, 5, 6]
+
+				var c = a.intersection(b)
+				print(c) # Prints [3, 4]
+				[/codeblock]
+				See also [method intersect].
 			</description>
 		</method>
 		<method name="is_empty" qualifiers="const">
@@ -811,6 +848,12 @@
 				[b]Note:[/b] In C#, this method is not supported.
 				[b]Note:[/b] The sorting algorithm used is not [url=https://en.wikipedia.org/wiki/Sorting_algorithm#Stability]stable[/url]. This means that values considered equal may have their order changed when calling this method.
 				[b]Note:[/b] You should not randomize the return value of [param func], as the heapsort algorithm expects a consistent result. Randomizing the return value will result in unexpected behavior.
+			</description>
+		</method>
+		<method name="subtract">
+			<return type="void" />
+			<param index="0" name="array" type="Array" />
+			<description>
 			</description>
 		</method>
 	</methods>
