@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  extension_api_dump.h                                                  */
+/*  animation_blend_space_2d.compat.inc                                   */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -28,19 +28,22 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#pragma once
+#ifndef DISABLE_DEPRECATED
 
-#ifdef TOOLS_ENABLED
+#include "animation_blend_space_2d.h"
 
-#include "core/error/error_list.h"
-#include "core/string/ustring.h"
-#include "core/variant/dictionary.h"
+#include "core/object/class_db.h"
 
-class GDExtensionAPIDump {
-public:
-	static Dictionary generate_extension_api(bool p_include_docs = false);
-	static void generate_extension_json_file(const String &p_path, bool p_include_docs = false);
-	static Error validate_extension_json_file(const String &p_path);
-};
+void AnimationNodeBlendSpace2D::_add_blend_point_bind_compat_110369(const Ref<AnimationRootNode> &p_node, const Vector2 &p_position, int p_at_index) {
+	int n = p_at_index == -1 ? blend_points_used : p_at_index;
+	while (find_blend_point_by_name(itos(n)) != -1) {
+		n++;
+	}
+	add_blend_point(p_node, p_position, p_at_index, StringName(itos(n)));
+}
 
-#endif
+void AnimationNodeBlendSpace2D::_bind_compatibility_methods() {
+	ClassDB::bind_compatibility_method(D_METHOD("add_blend_point", "node", "pos", "at_index"), &AnimationNodeBlendSpace2D::_add_blend_point_bind_compat_110369, DEFVAL(-1));
+}
+
+#endif // DISABLE_DEPRECATED
