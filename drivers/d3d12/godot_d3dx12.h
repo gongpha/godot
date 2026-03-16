@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  rendering_context_driver_vulkan_wayland.cpp                           */
+/*  godot_d3dx12.h                                                        */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -28,39 +28,19 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-#ifdef VULKAN_ENABLED
+#pragma once
 
-#include "rendering_context_driver_vulkan_wayland.h"
+#include "core/typedefs.h"
 
-#include <drivers/vulkan/godot_vulkan.h>
+#if !defined(_MSC_VER) && !defined(__REQUIRED_RPCNDR_H_VERSION__)
+// Match current version used by MinGW, MSVC and Direct3D 12 headers use 500.
+#define __REQUIRED_RPCNDR_H_VERSION__ 475
+#endif // !defined(_MSC_VER) && !defined(__REQUIRED_RPCNDR_H_VERSION__)
 
-const char *RenderingContextDriverVulkanWayland::_get_platform_surface_extension() const {
-	return VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME;
-}
+GODOT_GCC_WARNING_PUSH_AND_IGNORE("-Wnon-virtual-dtor")
+GODOT_CLANG_WARNING_PUSH_AND_IGNORE("-Wnon-virtual-dtor")
 
-RenderingContextDriver::SurfaceID RenderingContextDriverVulkanWayland::surface_create(const void *p_platform_data) {
-	const WindowPlatformData *wpd = (const WindowPlatformData *)(p_platform_data);
+#include <thirdparty/directx_headers/include/directx/d3dx12.h> // IWYU pragma: export.
 
-	VkWaylandSurfaceCreateInfoKHR create_info = {};
-	create_info.sType = VK_STRUCTURE_TYPE_WAYLAND_SURFACE_CREATE_INFO_KHR;
-	create_info.display = wpd->display;
-	create_info.surface = wpd->surface;
-
-	VkSurfaceKHR vk_surface = VK_NULL_HANDLE;
-	VkResult err = vkCreateWaylandSurfaceKHR(instance_get(), &create_info, get_allocation_callbacks(VK_OBJECT_TYPE_SURFACE_KHR), &vk_surface);
-	ERR_FAIL_COND_V(err != VK_SUCCESS, SurfaceID());
-
-	Surface *surface = memnew(Surface);
-	surface->vk_surface = vk_surface;
-	return SurfaceID(surface);
-}
-
-RenderingContextDriverVulkanWayland::RenderingContextDriverVulkanWayland() {
-	// Does nothing.
-}
-
-RenderingContextDriverVulkanWayland::~RenderingContextDriverVulkanWayland() {
-	// Does nothing.
-}
-
-#endif // VULKAN_ENABLED
+GODOT_GCC_WARNING_POP
+GODOT_CLANG_WARNING_POP
