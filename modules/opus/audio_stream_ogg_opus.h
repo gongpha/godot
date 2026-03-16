@@ -40,7 +40,7 @@ class AudioStreamOggOpus;
 class AudioStreamPlaybackOggOpus : public AudioStreamPlaybackResampled {
 	GDCLASS(AudioStreamPlaybackOggOpus, AudioStreamPlaybackResampled);
 
-	uint32_t frames_mixed = 0;
+	uint64_t frames_mixed = 0;
 	bool active = false;
 	bool looping_override = false;
 	bool looping = false;
@@ -51,6 +51,7 @@ class AudioStreamPlaybackOggOpus : public AudioStreamPlaybackResampled {
 	int loop_fade_remaining = FADE_SIZE;
 
 	OggOpusFile *opus_file = nullptr;
+	Vector<uint8_t> opus_data; // Kept alive for op_open_memory()
 	bool ready = false;
 
 	Ref<AudioStreamOggOpus> opus_stream;
@@ -98,6 +99,8 @@ class AudioStreamOggOpus : public AudioStream {
 
 	friend class AudioStreamPlaybackOggOpus;
 
+	Vector<uint8_t> data;
+	double length = 0.0;
 	bool loop = false;
 	double loop_offset = 0.0;
 	double bpm = 0;
@@ -111,6 +114,9 @@ protected:
 public:
 	static Ref<AudioStreamOggOpus> load_from_file(const String &p_path);
 	static Ref<AudioStreamOggOpus> load_from_buffer(const Vector<uint8_t> &p_stream_data);
+
+	void set_data(const Vector<uint8_t> &p_data);
+	Vector<uint8_t> get_data() const;
 
 	void set_loop(bool p_enable);
 	virtual bool has_loop() const override;
