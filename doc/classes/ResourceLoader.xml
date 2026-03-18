@@ -137,6 +137,14 @@
 				The [param cache_mode] parameter defines whether and how the cache should be used or updated when loading the resource.
 			</description>
 		</method>
+		<method name="remap_path">
+			<return type="String" />
+			<param index="0" name="path" type="String" />
+			<description>
+				Returns the remapped path for the given [param path].
+				This remaps the path to a location containing the translated or converted resource (for example, mapping a [code].tres[/code] file to a [code].res[/code] file when playing an exported project, or applying translation remaps).
+			</description>
+		</method>
 		<method name="remove_resource_format_loader">
 			<return type="void" />
 			<param index="0" name="format_loader" type="ResourceFormatLoader" />

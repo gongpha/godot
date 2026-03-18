@@ -87,6 +87,9 @@ public:
 
 	Vector<String> list_directory(const String &p_directory);
 
+	// 66 begin
+	String remap_path(const String &p_path);
+
 	ResourceLoader() { singleton = this; }
 };
 
