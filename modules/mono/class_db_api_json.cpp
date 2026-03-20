@@ -35,7 +35,6 @@
 #include "core/config/project_settings.h"
 #include "core/io/file_access.h"
 #include "core/io/json.h"
-#include "core/version.h"
 
 void class_db_api_to_json(const String &p_output_file, ClassDB::APIType p_api) {
 	Dictionary classes_dict;
@@ -147,7 +146,7 @@ void class_db_api_to_json(const String &p_output_file, ClassDB::APIType p_api) {
 
 			List<StringName> snames;
 
-			for (const KeyValue<StringName, MethodInfo> &F : t->signal_map) {
+			for (const KeyValue<StringName, const MethodInfo *> &F : t->gdtype->get_signal_map(true)) {
 				snames.push_back(F.key);
 			}
 
@@ -159,7 +158,7 @@ void class_db_api_to_json(const String &p_output_file, ClassDB::APIType p_api) {
 				Dictionary signal_dict;
 				signals.push_back(signal_dict);
 
-				MethodInfo &mi = t->signal_map[F];
+				const MethodInfo &mi = *t->gdtype->get_signal_map(true)[F];
 				signal_dict["name"] = F;
 
 				Array arguments;

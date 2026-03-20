@@ -537,7 +537,7 @@ void AnimationNodeBlendSpace1DEditor::_add_animation_type(int p_index) {
 	updating = true;
 	EditorUndoRedoManager *undo_redo = EditorUndoRedoManager::get_singleton();
 	undo_redo->create_action(TTR("Add Animation Point"));
-	undo_redo->add_do_method(blend_space.ptr(), "add_blend_point", anim, add_point_pos, -1, _get_safe_name(blend_space, animations_to_add[p_index]));
+	undo_redo->add_do_method(blend_space.ptr(), "add_blend_point", anim, add_point_pos, -1, _get_safe_name(blend_space, String(animations_to_add[p_index]).validate_node_name()));
 	undo_redo->add_undo_method(blend_space.ptr(), "remove_blend_point", blend_space->get_blend_point_count());
 	undo_redo->add_do_method(this, "_update_space");
 	undo_redo->add_undo_method(this, "_update_space");
@@ -817,7 +817,7 @@ void AnimationNodeBlendSpace1DEditor::_start_inline_edit(int p_point) {
 	inline_editor->add_theme_color_override(SceneStringName(font_color), get_theme_color(SNAME("accent_color"), EditorStringName(Editor)));
 	inline_editor->add_theme_color_override("font_selected_color", Color::named("white"));
 	inline_editor->add_theme_color_override("selection_color", get_theme_color(SNAME("accent_color"), EditorStringName(Editor)));
-	StyleBoxEmpty *empty_style = memnew(StyleBoxEmpty);
+	Ref<StyleBoxEmpty> empty_style = memnew(StyleBoxEmpty);
 	empty_style->set_content_margin_all(0);
 	inline_editor->add_theme_style_override(CoreStringName(normal), empty_style);
 	inline_editor->add_theme_style_override("focus", memnew(StyleBoxEmpty));

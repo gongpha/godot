@@ -220,6 +220,7 @@ jobs:
       - name: Prepare artifact
         if: matrix.artifact
         run: |
+          rm -rf ./bin/build_deps
           strip bin/godot66.*
           chmod +x bin/godot66.*
 

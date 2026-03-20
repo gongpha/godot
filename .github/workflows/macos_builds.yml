@@ -95,6 +95,7 @@ jobs:
         run: |
           lipo -create ./bin/godot66.macos.${{ matrix.target }}.x86_64 ./bin/godot66.macos.${{ matrix.target }}.arm64 -output ./bin/godot66.macos.${{ matrix.target }}.universal
           rm ./bin/godot66.macos.${{ matrix.target }}.x86_64 ./bin/godot66.macos.${{ matrix.target }}.arm64
+          rm -rf ./bin/build_deps
           strip bin/godot66.*
           chmod +x bin/godot66.*
 

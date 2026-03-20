@@ -31,11 +31,10 @@
 #include "animation_blend_space_2d.h"
 #include "animation_blend_space_2d.compat.inc"
 
-#include "animation_blend_tree.h"
-
 #include "core/math/geometry_2d.h"
 #include "core/object/callable_mp.h"
 #include "core/object/class_db.h"
+#include "scene/animation/animation_blend_tree.h"
 
 void AnimationNodeBlendSpace2D::get_parameter_list(LocalVector<PropertyInfo> *r_list) const {
 	AnimationNode::get_parameter_list(r_list);
@@ -393,21 +392,12 @@ bool AnimationNodeBlendSpace2D::_set(const StringName &p_name, const Variant &p_
 	if (prop.begins_with("blend_point_")) {
 		int idx = prop.get_slicec('_', 2).to_int();
 		String what = prop.get_slicec('/', 1);
+		if (idx == blend_points_used && what == "node") {
+			add_blend_point(p_value, Vector2(), -1, StringName(itos(idx)));
+			return true;
+		}
 		if (what == "node") {
-			Ref<AnimationRootNode> node = p_value;
-#ifndef DISABLE_DEPRECATED
-			if (idx == blend_points_used) {
-				add_blend_point(node, Vector2(), -1, blend_points[idx].name.is_empty() ? StringName(itos(idx)) : blend_points[idx].name);
-			} else {
-				set_blend_point_node(idx, node);
-			}
-#else
-			if (idx == blend_points_used) {
-				add_blend_point(node, Vector2(), -1, blend_points[idx].name);
-			} else {
-				set_blend_point_node(idx, node);
-			}
-#endif // DISABLE_DEPRECATED
+			set_blend_point_node(idx, p_value);
 		} else if (what == "pos") {
 			set_blend_point_position(idx, p_value);
 		} else if (what == "name") {
