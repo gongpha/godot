@@ -1,5 +1,5 @@
 /**************************************************************************/
-/*  GodotDownloaderAlarmReceiver.java                                     */
+/*  object.compat.inc                                                     */
 /**************************************************************************/
 /*                         This file is part of:                          */
 /*                             GODOT ENGINE                               */
@@ -28,32 +28,25 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                 */
 /**************************************************************************/
 
-package org.godotengine.godot;
+#ifndef DISABLE_DEPRECATED
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.pm.PackageManager.NameNotFoundException;
-import android.util.Log;
+#include "object.h"
 
-import com.google.android.vending.expansion.downloader.DownloaderClientMarshaller;
+#include "core/object/class_db.h"
 
-/**
- * You should start your derived downloader class when this receiver gets the message
- * from the alarm service using the provided service helper function within the
- * DownloaderClientMarshaller. This class must be then registered in your AndroidManifest.xml
- * file with a section like this:
- *         <receiver android:name=".GodotDownloaderAlarmReceiver"/>
- */
-public class GodotDownloaderAlarmReceiver extends BroadcastReceiver {
-	@Override
-	public void onReceive(Context context, Intent intent) {
-		Log.d("GODOT", "Alarma recivida");
-		try {
-			DownloaderClientMarshaller.startDownloadServiceIfRequired(context, intent, GodotDownloaderService.class);
-		} catch (NameNotFoundException e) {
-			e.printStackTrace();
-			Log.d("GODOT", "Exception: " + e.getClass().getName() + ":" + e.getMessage());
+bool Object::_is_class_bind_compat_118582(const String &p_name) const {
+	for (const StringName &name : get_gdtype().get_name_hierarchy()) {
+		if (name == p_name) {
+			return true;
 		}
 	}
+	return false;
 }
+
+void Object::_bind_compatibility_methods() {
+	ClassDB::bind_compatibility_method(D_METHOD("is_class", "class"), &Object::_is_class_bind_compat_118582);
+}
+
+#else
+void Object::_bind_compatibility_methods() {}
+#endif // DISABLE_DEPRECATED
