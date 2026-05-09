@@ -17,12 +17,16 @@
 #include <algorithm>
 #include <atomic>
 #include <cstring>
+#include <iomanip>
 #include <map>
 #include <optional>
+#include <regex>
+#include <sstream>
 
 #include "csg_tree.h"
 #include "disjoint_sets.h"
 #include "hashtable.h"
+#include "manifold/manifold.h"
 #include "manifold/optional_assert.h"
 #include "mesh_fixes.h"
 #include "parallel.h"
@@ -144,6 +148,15 @@ int GetLabels(std::vector<int>& components,
 
   return uf.connectedComponents(components);
 }
+
+template <typename T>
+double FromChars(T buffer) {
+  double tmp;
+  std::istringstream iss(buffer);
+  iss >> std::setprecision(19);
+  iss >> tmp;
+  return tmp;
+}
 }  // namespace
 
 namespace manifold {
@@ -206,12 +219,14 @@ Manifold::Impl::Impl(Shape shape, const mat3x4 m) {
                   {3, 0, 4}, {2, 5, 1}};
       break;
   }
-  vertPos_ = vertPos;
+  vertPos_ = Vec(vertPos);
   for (auto& v : vertPos_) v = m * vec4(v, 1.0);
   CreateHalfedges(triVerts);
-  Finish();
   InitializeOriginal();
-  MarkCoplanar();
+  CalculateBBox();
+  SetEpsilon();
+  SortGeometry();
+  SetNormalsAndCoplanar();
 }
 
 void Manifold::Impl::RemoveUnreferencedVerts() {
@@ -233,41 +248,42 @@ void Manifold::Impl::RemoveUnreferencedVerts() {
   });
 }
 
-void Manifold::Impl::InitializeOriginal(bool keepFaceID) {
+void Manifold::Impl::InitializeOriginal() {
   const int meshID = ReserveIDs(1);
   meshRelation_.originalID = meshID;
   auto& triRef = meshRelation_.triRef;
   triRef.resize_nofill(NumTri());
   for_each_n(autoPolicy(NumTri(), 1e5), countAt(0), NumTri(),
-             [meshID, keepFaceID, &triRef](const int tri) {
-               triRef[tri] = {meshID, meshID, -1,
-                              keepFaceID ? triRef[tri].coplanarID : tri};
+             [meshID, &triRef](const int tri) {
+               triRef[tri] = {meshID, meshID, -1, triRef[tri].coplanarID};
              });
   meshRelation_.meshIDtransform.clear();
   meshRelation_.meshIDtransform[meshID] = {meshID};
 }
 
-void Manifold::Impl::MarkCoplanar() {
+void Manifold::Impl::SetNormalsAndCoplanar() {
   ZoneScoped;
   const int numTri = NumTri();
+  faceNormal_.resize(numTri);
   struct TriPriority {
     double area2;
     int tri;
   };
   Vec<TriPriority> triPriority(numTri);
-  for_each_n(autoPolicy(numTri), countAt(0), numTri,
-             [&triPriority, this](int tri) {
-               meshRelation_.triRef[tri].coplanarID = -1;
-               if (halfedge_[3 * tri].startVert < 0) {
-                 triPriority[tri] = {0, tri};
-                 return;
-               }
-               const vec3 v = vertPos_[halfedge_[3 * tri].startVert];
-               triPriority[tri] = {
-                   length2(cross(vertPos_[halfedge_[3 * tri].endVert] - v,
-                                 vertPos_[halfedge_[3 * tri + 1].endVert] - v)),
-                   tri};
-             });
+  for_each_n(
+      autoPolicy(numTri), countAt(0), numTri, [&triPriority, this](int tri) {
+        meshRelation_.triRef[tri].coplanarID = -1;
+        if (halfedge_[3 * tri].startVert < 0) {
+          triPriority[tri] = {0, tri};
+          return;
+        }
+        const vec3 v = vertPos_[halfedge_[3 * tri].startVert];
+        const vec3 n = cross(vertPos_[halfedge_[3 * tri].endVert] - v,
+                             vertPos_[halfedge_[3 * tri + 1].endVert] - v);
+        faceNormal_[tri] = normalize(n);
+        if (std::isnan(faceNormal_[tri].x)) faceNormal_[tri] = vec3(0, 0, 1);
+        triPriority[tri] = {length2(n), tri};
+      });
 
   stable_sort(triPriority.begin(), triPriority.end(),
               [](auto a, auto b) { return a.area2 > b.area2; });
@@ -292,7 +308,9 @@ void Manifold::Impl::MarkCoplanar() {
 
       const vec3 v = vertPos_[halfedge_[h].endVert];
       if (std::abs(dot(v - base, normal)) < tolerance_) {
-        meshRelation_.triRef[h / 3].coplanarID = tp.tri;
+        const size_t tri = h / 3;
+        meshRelation_.triRef[tri].coplanarID = tp.tri;
+        faceNormal_[tri] = normal;
 
         if (interiorHalfedges.empty() ||
             h != halfedge_[interiorHalfedges.back()].pairedHalfedge) {
@@ -305,6 +323,7 @@ void Manifold::Impl::MarkCoplanar() {
       }
     }
   }
+  CalculateVertNormals();
 }
 
 /**
@@ -316,6 +335,7 @@ void Manifold::Impl::DedupePropVerts() {
   const size_t numProp = NumProp();
   if (numProp == 0) return;
 
+  halfedge_.MakeUnique();
   Vec<std::pair<int, int>> vert2vert(halfedge_.size(), {-1, -1});
   for_each_n(autoPolicy(halfedge_.size(), 1e4), countAt(0), halfedge_.size(),
              [&vert2vert, numProp, this](const int edgeIdx) {
@@ -492,8 +512,32 @@ void Manifold::Impl::CreateHalfedges(const Vec<ivec3>& triProp,
           halfedge_[NextHalfedge(pair0)].endVert ==
               halfedge_[NextHalfedge(pair1)].endVert) {
         h0.pairedHalfedge = h1.pairedHalfedge = kRemovedHalfedge;
-        // Reorder so that remaining edges pair up
-        if (k != i + numEdge) std::swap(ids[i + numEdge], ids[k]);
+        if (i + numEdge != k) {
+          // Reorder so that remaining edges pair up, while preserving relative
+          // order between the edges (triangle id order)
+          // cannot directly use move and move_backward because we need to keep
+          // removed halfedges in-place
+          int dir = i + numEdge < k ? 1 : -1;
+          int a = k;
+          int b = k + dir;
+          auto isRemoved = [this, &ids](int x) {
+            return halfedge_[ids[x]].pairedHalfedge == kRemovedHalfedge;
+          };
+          auto inRange = [&a, dir, i, numEdge]() {
+            return (dir > 0 ? a >= i + numEdge : a <= i + numEdge);
+          };
+          while (1) {
+            do {
+              a -= dir;
+            } while (inRange() && isRemoved(a));
+            if (!inRange()) break;
+            do {
+              b -= dir;
+            } while (isRemoved(b) && b != k);
+            ids[b] = ids[a];
+          }
+          ids[i + numEdge] = pair1;
+        }
         break;
       }
       ++k;
@@ -548,26 +592,16 @@ void Manifold::Impl::CreateHalfedges(const Vec<ivec3>& triProp,
   });
 }
 
-/**
- * Does a full recalculation of the face bounding boxes, including updating
- * the collider, but does not resort the faces.
- */
-void Manifold::Impl::Update() {
-  CalculateBBox();
-  Vec<Box> faceBox;
-  Vec<uint32_t> faceMorton;
-  GetFaceBoxMorton(faceBox, faceMorton);
-  collider_.UpdateBoxes(faceBox);
-}
-
 void Manifold::Impl::MakeEmpty(Error status) {
   bBox_ = Box();
   vertPos_.clear();
+  halfedge_.MakeUnique();
   halfedge_.clear();
   vertNormal_.clear();
   faceNormal_.clear();
   halfedgeTangent_.clear();
   meshRelation_ = MeshRelationD();
+  collider_ = {};
   status_ = status;
 }
 
@@ -584,11 +618,9 @@ void Manifold::Impl::WarpBatch(std::function<void(VecView<vec3>)> warpFunc) {
     MakeEmpty(Error::NonFiniteVertex);
     return;
   }
-  Update();
-  faceNormal_.clear();  // force recalculation of triNormal
   SetEpsilon();
-  Finish();
-  MarkCoplanar();
+  SortGeometry();
+  SetNormalsAndCoplanar();
   meshRelation_.originalID = -1;
 }
 
@@ -605,7 +637,6 @@ Manifold::Impl Manifold::Impl::Transform(const mat3x4& transform_) const {
     result.MakeEmpty(Error::NonFiniteVertex);
     return result;
   }
-  result.collider_ = collider_;
   result.meshRelation_ = meshRelation_;
   result.epsilon_ = epsilon_;
   result.tolerance_ = tolerance_;
@@ -641,19 +672,29 @@ Manifold::Impl Manifold::Impl::Transform(const mat3x4& transform_) const {
   }
 
   if (invert) {
+    result.halfedge_.MakeUnique();
     for_each_n(policy, countAt(0), result.NumTri(),
                FlipTris({result.halfedge_}));
   }
-
-  // This optimization does a cheap collider update if the transform is
-  // axis-aligned.
-  if (!result.collider_.Transform(transform_)) result.Update();
 
   result.CalculateBBox();
   // Scale epsilon by the norm of the 3x3 portion of the transform.
   result.epsilon_ *= SpectralNorm(mat3(transform_));
   // Maximum of inherited epsilon loss and translational epsilon loss.
   result.SetEpsilon(result.epsilon_);
+
+  if (!result.IsEmpty()) {
+    if (Collider::IsAxisAligned(transform_)) {
+      result.collider_ = collider_;
+      result.collider_.Transform(transform_);
+    } else if (!result.IsEmpty()) {
+      result.collider_ = collider_;
+      Vec<Box> faceBox;
+      Vec<uint32_t> faceMorton;
+      result.GetFaceBoxMorton(faceBox, faceMorton);
+      result.collider_.UpdateBoxes(faceBox);
+    }
+  }
   return result;
 }
 
@@ -671,18 +712,13 @@ void Manifold::Impl::SetEpsilon(double minEpsilon, bool useSingle) {
 }
 
 /**
- * If face normals are already present, this function uses them to compute
- * vertex normals (angle-weighted pseudo-normals); otherwise it also computes
- * the face normals. Face normals are only calculated when needed because
- * nearly degenerate faces will accrue rounding error, while the Boolean can
- * retain their original normal, which is more accurate and can help with
- * merging coplanar faces.
- *
- * If the face normals have been invalidated by an operation like Warp(),
- * ensure you do faceNormal_.resize(0) before calling this function to force
- * recalculation.
+ * This function uses the face normals to compute
+ * vertex normals (angle-weighted pseudo-normals). Face normals should only be
+ * calculated when needed because nearly degenerate faces will accrue rounding
+ * error, while the Boolean can retain their original normal, which is more
+ * accurate and can help with merging coplanar faces.
  */
-void Manifold::Impl::CalculateNormals() {
+void Manifold::Impl::CalculateVertNormals() {
   ZoneScoped;
   vertNormal_.resize(NumVert());
   auto policy = autoPolicy(NumTri());
@@ -698,34 +734,9 @@ void Manifold::Impl::CalculateNormals() {
     while (!vertHalfedgeMap[vert].compare_exchange_strong(old, value))
       if (old < value) break;
   };
-  if (faceNormal_.size() != NumTri()) {
-    faceNormal_.resize(NumTri());
-    for_each_n(policy, countAt(0), NumTri(), [&](const int face) {
-      vec3& triNormal = faceNormal_[face];
-      if (halfedge_[3 * face].startVert < 0) {
-        triNormal = vec3(0, 0, 1);
-        return;
-      }
 
-      ivec3 triVerts;
-      for (int i : {0, 1, 2}) {
-        int v = halfedge_[3 * face + i].startVert;
-        triVerts[i] = v;
-        atomicMin(3 * face + i, v);
-      }
-
-      vec3 edge[3];
-      for (int i : {0, 1, 2}) {
-        const int j = (i + 1) % 3;
-        edge[i] = la::normalize(vertPos_[triVerts[j]] - vertPos_[triVerts[i]]);
-      }
-      triNormal = la::normalize(la::cross(edge[0], edge[1]));
-      if (std::isnan(triNormal.x)) triNormal = vec3(0, 0, 1);
-    });
-  } else {
-    for_each_n(policy, countAt(0), halfedge_.size(),
-               [&](const int i) { atomicMin(i, halfedge_[i].startVert); });
-  }
+  for_each_n(policy, countAt(0), halfedge_.size(),
+             [&](const int i) { atomicMin(i, halfedge_[i].startVert); });
 
   for_each_n(policy, countAt(0), NumVert(), [&](const size_t vert) {
     int firstEdge = vertHalfedgeMap[vert].load();
@@ -759,6 +770,7 @@ void Manifold::Impl::CalculateNormals() {
  * instances of these meshes.
  */
 void Manifold::Impl::IncrementMeshIDs() {
+  ZoneScoped;
   HashTable<uint32_t> meshIDold2new(meshRelation_.meshIDtransform.size() * 2);
   // Update keys of the transform map
   std::map<int, Relation> oldTransforms;
@@ -775,25 +787,27 @@ void Manifold::Impl::IncrementMeshIDs() {
              UpdateMeshID({meshIDold2new.D()}));
 }
 
-#ifdef MANIFOLD_DEBUG
-/**
- * Debugging output using high precision OBJ files with specialized comments
- */
-std::ostream& operator<<(std::ostream& stream, const Manifold::Impl& impl) {
+static std::ostream& WriteOBJWithEpsilon(std::ostream& stream,
+                                         const MeshGL64& mesh,
+                                         std::optional<double> epsilon) {
   stream << std::setprecision(19);  // for double precision
   stream << std::fixed;             // for uniformity in output numbers
   stream << "# ======= begin mesh ======" << std::endl;
-  stream << "# tolerance = " << impl.tolerance_ << std::endl;
-  stream << "# epsilon = " << impl.epsilon_ << std::endl;
-  // TODO: Mesh relation, vertex normal and face normal
-  for (const vec3& v : impl.vertPos_)
-    stream << "v " << v.x << " " << v.y << " " << v.z << std::endl;
+  stream << "# tolerance = " << mesh.tolerance << std::endl;
+  if (epsilon.has_value())
+    stream << "# epsilon = " << epsilon.value() << std::endl;
+  for (size_t i = 0; i < mesh.NumVert(); i++) {
+    stream << "v";
+    size_t offset = i * mesh.numProp;
+    for (size_t j : {0, 1, 2}) stream << " " << mesh.vertProperties[offset + j];
+    stream << std::endl;
+  }
   std::vector<ivec3> triangles;
-  triangles.reserve(impl.halfedge_.size() / 3);
-  for (size_t i = 0; i < impl.halfedge_.size(); i += 3)
-    triangles.emplace_back(impl.halfedge_[i].startVert + 1,
-                           impl.halfedge_[i + 1].startVert + 1,
-                           impl.halfedge_[i + 2].startVert + 1);
+  triangles.reserve(mesh.NumTri());
+  for (size_t i = 0; i < mesh.NumTri(); i++)
+    triangles.emplace_back(mesh.triVerts[3 * i] + 1,
+                           mesh.triVerts[3 * i + 1] + 1,
+                           mesh.triVerts[3 * i + 2] + 1);
   sort(triangles.begin(), triangles.end());
   for (const auto& tri : triangles)
     stream << "f " << tri.x << " " << tri.y << " " << tri.z << std::endl;
@@ -801,87 +815,105 @@ std::ostream& operator<<(std::ostream& stream, const Manifold::Impl& impl) {
   return stream;
 }
 
-/**
- * Import a mesh from a Wavefront OBJ file that was exported with Write.  This
- * function is the counterpart to Write and should be used with it.  This
- * function is not guaranteed to be able to import OBJ files not written by the
- * Write function.
- */
-Manifold Manifold::ReadOBJ(std::istream& stream) {
-  if (!stream.good()) return Invalid();
+static std::pair<MeshGL64, std::optional<double>> ReadOBJWithEpsilon(
+    std::istream& stream) {
+  static const std::string FLOAT_PATTERN =
+      "(-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)";
+  static const std::string FACE_ELEMENT = "(\\d+)(?:\\S+)?";
+  static const std::string TRAILING_SPACES = "(?:\\s*)";
+  static const std::string SEPARATOR = "\\s+";
+  static const std::regex TOLERANCE_COMMENT_PATTERN(
+      "^# tolerance = " + FLOAT_PATTERN + TRAILING_SPACES);
+  static const std::regex EPSILON_COMMENT_PATTERN(
+      "^# epsilon = " + FLOAT_PATTERN + TRAILING_SPACES);
+  static const std::regex VERTEX_PATTERN("^v" + SEPARATOR + FLOAT_PATTERN +
+                                         SEPARATOR + FLOAT_PATTERN + SEPARATOR +
+                                         FLOAT_PATTERN + TRAILING_SPACES);
+  static const std::regex FACE_PATTERN("^f" + SEPARATOR + FACE_ELEMENT +
+                                       SEPARATOR + FACE_ELEMENT + SEPARATOR +
+                                       FACE_ELEMENT + TRAILING_SPACES);
 
   MeshGL64 mesh;
   std::optional<double> epsilon;
-  stream >> std::setprecision(19);
-  while (true) {
-    char c = stream.get();
-    if (stream.eof()) break;
-    switch (c) {
-      case '#': {
-        char c = stream.get();
-        if (c == ' ') {
-          constexpr int SIZE = 10;
-          std::array<char, SIZE> tmp;
-          stream.get(tmp.data(), SIZE, '\n');
-          if (strncmp(tmp.data(), "tolerance", SIZE) == 0) {
-            // skip 3 letters
-            for (int _ : {0, 1, 2}) stream.get();
-            stream >> mesh.tolerance;
-          } else if (strncmp(tmp.data(), "epsilon =", SIZE) == 0) {
-            double tmp;
-            stream >> tmp;
-            epsilon = {tmp};
-          } else {
-            // add it back because it is not what we want
-            int end = 0;
-            while (end < SIZE && tmp[end] != 0) end++;
-            while (--end > -1) stream.putback(tmp[end]);
-          }
-          c = stream.get();
-        }
-        // just skip the remaining comment
-        while (c != '\n' && !stream.eof()) {
-          c = stream.get();
-        }
-        break;
-      }
-      case 'v':
-        for (int _ : {0, 1, 2}) {
-          double x;
-          stream >> x;
-          mesh.vertProperties.push_back(x);
-        }
-        break;
-      case 'f':
-        for (int _ : {0, 1, 2}) {
-          uint64_t x;
-          stream >> x;
-          mesh.triVerts.push_back(x - 1);
-        }
-        break;
-      case '\r':
-      case '\n':
-        break;
-      default:
-        DEBUG_ASSERT(false, userErr, "unexpected character in Manifold import");
+  if (!stream.good()) return std::make_pair(mesh, epsilon);
+
+  constexpr size_t BUFFER_SIZE = 1000;
+  std::array<char, BUFFER_SIZE> buffer;
+  std::cmatch m;
+
+  while (!stream.eof()) {
+    // extract line, and skip the line if it is longer than BUFFER_SIZE
+    // because the lines we care about should not be that long
+    // not using std::basic_istream<...>::getline because getline throws when
+    // the size exceeds the limit, but we don't want exception related code
+    size_t i = 0;
+    char c;
+    while (!stream.eof() && (c = stream.get()) != '\n' && c != '\r')
+      if (i < BUFFER_SIZE) buffer[i++] = c;
+    if (i == BUFFER_SIZE) continue;
+    buffer[i] = '\0';
+    // check pattern...
+    if (std::regex_match(buffer.data(), m, TOLERANCE_COMMENT_PATTERN)) {
+      mesh.tolerance = FromChars(m[1]);
+    } else if (std::regex_match(buffer.data(), m, EPSILON_COMMENT_PATTERN)) {
+      epsilon = {FromChars(m[1])};
+    } else if (std::regex_match(buffer.data(), m, VERTEX_PATTERN)) {
+      for (int j : {0, 1, 2})
+        mesh.vertProperties.push_back(FromChars(m[j + 1]));
+    } else if (std::regex_match(buffer.data(), m, FACE_PATTERN)) {
+      for (int j : {0, 1, 2})
+        mesh.triVerts.push_back(std::stoi(m[j + 1].str()) - 1);
     }
   }
-  auto m = std::make_shared<Manifold::Impl>(mesh);
-  if (epsilon) m->SetEpsilon(*epsilon);
-  return Manifold(m);
+
+  return std::make_pair(mesh, epsilon);
+}
+
+/**
+ * Import a mesh from a Wavefront OBJ file.
+ */
+MeshGL64 ReadOBJ(std::istream& stream) {
+  return ReadOBJWithEpsilon(stream).first;
+}
+
+/**
+ * Import a mesh from a Wavefront OBJ file.
+ * This supports reading tolerance and epsilon values from WriteOBJ.
+ */
+Manifold Manifold::ReadOBJ(std::istream& stream) {
+  if (!stream.good()) return Invalid();
+  auto [mesh, epsilon] = ReadOBJWithEpsilon(stream);
+  auto impl = std::make_shared<Impl>(mesh);
+  if (epsilon) impl->SetEpsilon(epsilon.value());
+  return Manifold(impl);
+}
+
+/**
+ * Export the mesh to a Wavefront OBJ file in a way that preserves the full
+ * 64-bit precision of the vertex positions.
+ */
+bool WriteOBJ(std::ostream& stream, const MeshGL64& mesh) {
+  if (!stream.good()) return false;
+  WriteOBJWithEpsilon(stream, mesh, {});
+  return true;
+}
+
+/**
+ * Debugging output using high precision OBJ files with specialized comments
+ */
+std::ostream& operator<<(std::ostream& stream, const Manifold::Impl& impl) {
+  MeshGL64 mesh = GetMeshGLImpl<double, uint64_t>(impl, -1);
+  return WriteOBJWithEpsilon(stream, mesh, {impl.epsilon_});
 }
 
 /**
  * Export the mesh to a Wavefront OBJ file in a way that preserves the full
  * 64-bit precision of the vertex positions, as well as storing metadata such as
- * the tolerance and epsilon. Useful for debugging and testing.  Files written
- * by WriteOBJ should be read back in with ReadOBJ.
+ * the tolerance and epsilon.
  */
 bool Manifold::WriteOBJ(std::ostream& stream) const {
   if (!stream.good()) return false;
   stream << *this->GetCsgLeafNode().GetImpl();
   return true;
 }
-#endif
-
 }  // namespace manifold

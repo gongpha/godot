@@ -148,7 +148,8 @@ Manifold Manifold::Cube(vec3 size, bool center) {
  * form cones if both radii are specified.
  *
  * @param height Z-extent
- * @param radiusLow Radius of bottom circle. Must be positive.
+ * @param radiusLow Radius of bottom circle. Must be non-negative. If zero,
+ * radiusHigh must be positive and a cone with apex at the bottom is created.
  * @param radiusHigh Radius of top circle. Can equal zero. Default is equal to
  * radiusLow.
  * @param circularSegments How many line segments to use around the circle.
@@ -158,8 +159,19 @@ Manifold Manifold::Cube(vec3 size, bool center) {
  */
 Manifold Manifold::Cylinder(double height, double radiusLow, double radiusHigh,
                             int circularSegments, bool center) {
-  if (height <= 0.0 || radiusLow <= 0.0) {
+  if (height <= 0.0 || radiusLow < 0.0) {
     return Invalid();
+  }
+  if (radiusLow == 0.0) {
+    if (radiusHigh <= 0.0) {
+      return Invalid();
+    }
+    // Cone with apex at bottom: create the centered apex-at-top version and
+    // mirror it
+    Manifold cone = Cylinder(height, radiusHigh, 0.0, circularSegments, true);
+    cone = cone.Mirror(vec3(0.0, 0.0, 1.0));
+    if (!center) cone = cone.Translate(vec3(0.0, 0.0, height / 2.0));
+    return cone.AsOriginal();
   }
   const double scale = radiusHigh >= 0.0 ? radiusHigh / radiusLow : 1.0;
   const double radius = fmax(radiusLow, radiusHigh);
@@ -202,9 +214,12 @@ Manifold Manifold::Sphere(double radius, int circularSegments) {
                v = radius * la::normalize(v);
                if (std::isnan(v.x)) v = vec3(0.0);
              });
-  pImpl_->Finish();
   // Ignore preceding octahedron.
   pImpl_->InitializeOriginal();
+  pImpl_->CalculateBBox();
+  pImpl_->SetEpsilon();
+  pImpl_->SortGeometry();
+  pImpl_->SetNormalsAndCoplanar();
   return Manifold(pImpl_);
 }
 
@@ -296,9 +311,11 @@ Manifold Manifold::Extrude(const Polygons& crossSection, double height,
   }
 
   pImpl_->CreateHalfedges(triVertsDH);
-  pImpl_->Finish();
   pImpl_->InitializeOriginal();
-  pImpl_->MarkCoplanar();
+  pImpl_->CalculateBBox();
+  pImpl_->SetEpsilon();
+  pImpl_->SortGeometry();
+  pImpl_->SetNormalsAndCoplanar();
   return Manifold(pImpl_);
 }
 
@@ -439,13 +456,17 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
   }
 
   pImpl_->CreateHalfedges(triVertsDH);
-  pImpl_->Finish();
   pImpl_->InitializeOriginal();
-  pImpl_->MarkCoplanar();
+  pImpl_->CalculateBBox();
+  pImpl_->SetEpsilon();
+  pImpl_->SortGeometry();
+  pImpl_->SetNormalsAndCoplanar();
   return Manifold(pImpl_);
 }
 
 /**
+ * Deprecated: Use BatchBoolean with OpType::Add instead.
+ *
  * Constructs a new manifold from a vector of other manifolds. This is a purely
  * topological operation, so care should be taken to avoid creating
  * overlapping results. It is the inverse operation of Decompose().
@@ -453,11 +474,7 @@ Manifold Manifold::Revolve(const Polygons& crossSection, int circularSegments,
  * @param manifolds A vector of Manifolds to lazy-union together.
  */
 Manifold Manifold::Compose(const std::vector<Manifold>& manifolds) {
-  std::vector<std::shared_ptr<CsgLeafNode>> children;
-  for (const auto& manifold : manifolds) {
-    children.push_back(manifold.pNode_->ToLeafNode());
-  }
-  return Manifold(CsgLeafNode::Compose(children));
+  return BatchBoolean(manifolds, OpType::Add);
 }
 
 /**
@@ -497,9 +514,12 @@ std::vector<Manifold> Manifold::Decompose() const {
                 [i, &vertLabel](int v) { return vertLabel[v] == i; }) -
         vertNew2Old.begin();
     impl->vertPos_.resize(nVert);
+    impl->vertNormal_.resize(nVert);
     vertNew2Old.resize(nVert);
     gather(vertNew2Old.begin(), vertNew2Old.end(), pImpl_->vertPos_.begin(),
            impl->vertPos_.begin());
+    gather(vertNew2Old.begin(), vertNew2Old.end(), pImpl_->vertNormal_.begin(),
+           impl->vertNormal_.begin());
 
     Vec<int> faceNew2Old(NumTri());
     const auto& halfedge = pImpl_->halfedge_;
@@ -515,7 +535,8 @@ std::vector<Manifold> Manifold::Decompose() const {
 
     impl->GatherFaces(*pImpl_, faceNew2Old);
     impl->ReindexVerts(vertNew2Old, pImpl_->NumVert());
-    impl->Finish();
+    impl->CalculateBBox();
+    impl->SortGeometry();
 
     meshes.push_back(Manifold(impl));
   }

@@ -26,10 +26,12 @@
 
 namespace {
 using namespace manifold;
+
 struct MeshCompare {
   bool operator()(const std::shared_ptr<CsgLeafNode>& a,
                   const std::shared_ptr<CsgLeafNode>& b) {
-    return a->GetImpl()->NumVert() < b->GetImpl()->NumVert();
+    // Use NumVert() which doesn't trigger transform application.
+    return a->NumVert() < b->NumVert();
   }
 };
 
@@ -104,8 +106,37 @@ std::shared_ptr<CsgNode> CsgLeafNode::Transform(const mat3x4& m) const {
 
 CsgNodeType CsgLeafNode::GetNodeType() const { return CsgNodeType::Leaf; }
 
+Box CsgLeafNode::GetBoundingBox() const {
+  // Compute transformed bounding box without triggering full mesh transform.
+  // This is an approximation - the actual bounding box of the transformed mesh
+  // may be tighter, but this is sufficient for overlap checks.
+  const Box& box = pImpl_->bBox_;
+  if (transform_ == mat3x4(la::identity)) {
+    return box;
+  }
+
+  // Arvo's algorithm for transforming AABBs efficiently.
+  // Instead of transforming all 8 corners, we compute min/max directly
+  // from the matrix elements based on their signs.
+  vec3 newMin = transform_[3];  // translation component
+  vec3 newMax = newMin;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      const auto a = transform_[j][i] * box.min[j];
+      const auto b = transform_[j][i] * box.max[j];
+      newMin[i] += std::min(a, b);
+      newMax[i] += std::max(a, b);
+    }
+  }
+  return Box{newMin, newMax};
+}
+
+size_t CsgLeafNode::NumVert() const { return pImpl_->NumVert(); }
+
 std::shared_ptr<CsgLeafNode> ImplToLeaf(Manifold::Impl&& impl) {
-  return std::make_shared<CsgLeafNode>(std::make_shared<Manifold::Impl>(impl));
+  return std::make_shared<CsgLeafNode>(
+      std::make_shared<Manifold::Impl>(std::move(impl)));
 }
 
 std::shared_ptr<CsgLeafNode> SimpleBoolean(const Manifold::Impl& a,
@@ -117,7 +148,6 @@ std::shared_ptr<CsgLeafNode> SimpleBoolean(const Manifold::Impl& a,
               << std::endl;
     std::cout << "RHS self-intersecting: " << b.IsSelfIntersecting()
               << std::endl;
-#ifdef MANIFOLD_EXPORT
     if (ManifoldParams().verbose) {
       if (op == OpType::Add)
         std::cout << "Add";
@@ -129,7 +159,6 @@ std::shared_ptr<CsgLeafNode> SimpleBoolean(const Manifold::Impl& a,
       std::cout << a;
       std::cout << b;
     }
-#endif
     dump_lock.unlock();
   };
   try {
@@ -162,6 +191,7 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
   ZoneScoped;
   double epsilon = -1;
   double tolerance = -1;
+  Box bbox;
   int numVert = 0;
   int numEdge = 0;
   int numTri = 0;
@@ -186,6 +216,7 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
     if (!std::isfinite(nodeEpsilon)) nodeEpsilon = -1;
     epsilon = std::max(epsilon, nodeEpsilon);
     tolerance = std::max(tolerance, node->pImpl_->tolerance_);
+    bbox = bbox.Union(node->GetBoundingBox());
 
     vertIndices.push_back(numVert);
     edgeIndices.push_back(numEdge * 2);
@@ -203,7 +234,9 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
   Manifold::Impl combined;
   combined.epsilon_ = epsilon;
   combined.tolerance_ = tolerance;
+  combined.bBox_ = bbox;
   combined.vertPos_.resize_nofill(numVert);
+  combined.vertNormal_.resize_nofill(numVert);
   combined.halfedge_.resize_nofill(2 * numEdge);
   combined.faceNormal_.resize_nofill(numTri);
   combined.halfedgeTangent_.resize(2 * numEdge);
@@ -231,13 +264,15 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
         const int nextVert = vertIndices[i];
         const int nextEdge = edgeIndices[i];
         const int nextProp = propVertIndices[i];
+        const bool hasProp = node->pImpl_->NumProp() > 0;
         transform(node->pImpl_->halfedge_.begin(),
                   node->pImpl_->halfedge_.end(),
                   combined.halfedge_.begin() + edgeIndices[i],
-                  [nextVert, nextEdge, nextProp](Halfedge edge) {
+                  [nextVert, nextEdge, nextProp, hasProp](Halfedge edge) {
                     edge.startVert += nextVert;
                     edge.endVert += nextVert;
                     edge.pairedHalfedge += nextEdge;
+                    if (!hasProp) edge.propVert = 0;
                     edge.propVert += nextProp;
                     return edge;
                   });
@@ -259,6 +294,9 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
         if (node->transform_ == mat3x4(la::identity)) {
           copy(node->pImpl_->vertPos_.begin(), node->pImpl_->vertPos_.end(),
                combined.vertPos_.begin() + vertIndices[i]);
+          copy(node->pImpl_->vertNormal_.begin(),
+               node->pImpl_->vertNormal_.end(),
+               combined.vertNormal_.begin() + vertIndices[i]);
           copy(node->pImpl_->faceNormal_.begin(),
                node->pImpl_->faceNormal_.end(),
                combined.faceNormal_.begin() + triIndices[i]);
@@ -272,11 +310,16 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
               });
           mat3 normalTransform =
               la::inverse(la::transpose(mat3(node->transform_)));
+          auto vertNormalBegin =
+              TransformIterator(node->pImpl_->vertNormal_.begin(),
+                                TransformNormals({normalTransform}));
           auto faceNormalBegin =
               TransformIterator(node->pImpl_->faceNormal_.begin(),
                                 TransformNormals({normalTransform}));
           copy_n(vertPosBegin, node->pImpl_->vertPos_.size(),
                  combined.vertPos_.begin() + vertIndices[i]);
+          copy_n(vertNormalBegin, node->pImpl_->vertNormal_.size(),
+                 combined.vertNormal_.begin() + vertIndices[i]);
           copy_n(faceNormalBegin, node->pImpl_->faceNormal_.size(),
                  combined.faceNormal_.begin() + triIndices[i]);
 
@@ -308,13 +351,20 @@ std::shared_ptr<CsgLeafNode> CsgLeafNode::Compose(
     const int offset = i * Manifold::Impl::meshIDCounter_;
 
     for (const auto& pair : node->pImpl_->meshRelation_.meshIDtransform) {
-      combined.meshRelation_.meshIDtransform[pair.first + offset] = pair.second;
+      Manifold::Impl::Relation rel = pair.second;
+      // Apply the node's transform to the mesh relation if not identity.
+      // This is necessary because we may not have called GetImpl() which would
+      // have applied the transform to the mesh relations.
+      if (node->transform_ != mat3x4(la::identity)) {
+        rel.transform = node->transform_ * Mat4(rel.transform);
+      }
+      combined.meshRelation_.meshIDtransform[pair.first + offset] = rel;
     }
   }
 
   // required to remove parts that are smaller than the tolerance
   combined.RemoveDegenerates();
-  combined.Finish();
+  combined.SortGeometry();
   combined.IncrementMeshIDs();
   return ImplToLeaf(std::move(combined));
 }
@@ -399,7 +449,7 @@ std::shared_ptr<CsgLeafNode> BatchUnion(
     Vec<Box> boxes;
     boxes.reserve(children.size() - start);
     for (size_t i = start; i < children.size(); i++) {
-      boxes.push_back(children[i]->GetImpl()->bBox_);
+      boxes.push_back(children[i]->GetBoundingBox());
     }
     // partition the children into a set of disjoint sets
     // each set contains a set of children that are pairwise disjoint
@@ -514,6 +564,7 @@ struct CsgStackFrame {
 };
 
 std::shared_ptr<CsgLeafNode> CsgOpNode::ToLeafNode() const {
+  ZoneScoped;
   if (cache_ != nullptr) return cache_;
 
   // Note: We do need a pointer here to avoid vector pointers from being

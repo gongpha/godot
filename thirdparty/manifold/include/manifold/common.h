@@ -21,7 +21,6 @@
 #endif
 
 #include "linalg.h"
-#include "optional_assert.h"
 
 namespace manifold {
 /** @addtogroup Math
@@ -471,7 +470,7 @@ struct Rect {
  * @brief Boolean operation type: Add (Union), Subtract (Difference), and
  * Intersect.
  */
-enum class OpType { Add, Subtract, Intersect };
+enum class OpType : char { Add, Subtract, Intersect };
 
 constexpr int DEFAULT_SEGMENTS = 0;
 constexpr double DEFAULT_ANGLE = 10.0;
@@ -524,9 +523,8 @@ struct ExecutionParams {
   bool cleanupTriangles = true;
   /// Verbose level:
   /// - 0 for no verbose output
-  /// - 1 for verbose output for the Boolean, including timing info and vector
-  /// sizes.
-  /// - 2 for verbose output with triangulator action as well.
+  /// - 1 for Boolean debug dumps on failures and invalid intermediate meshes.
+  /// - 2 for Boolean timing and size statistics, plus triangulator action.
   int verbose = 0;
 };
 /** @} */

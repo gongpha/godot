@@ -13,8 +13,6 @@
 // limitations under the License.
 
 #include <algorithm>
-#include <map>
-#include <numeric>
 
 #include "boolean3.h"
 #include "csg_tree.h"
@@ -36,165 +34,6 @@ Manifold Halfspace(Box bBox, vec3 normal, double originOffset) {
   double yDeg = degrees(-std::asin(normal.z));
   double zDeg = degrees(std::atan2(normal.y, normal.x));
   return cutter.Rotate(0.0, yDeg, zDeg);
-}
-
-template <typename Precision, typename I>
-MeshGLP<Precision, I> GetMeshGLImpl(const manifold::Manifold::Impl& impl,
-                                    int normalIdx) {
-  ZoneScoped;
-  const int numProp = impl.NumProp();
-  const int numVert = impl.NumPropVert();
-  const int numTri = impl.NumTri();
-
-  const bool isOriginal = impl.meshRelation_.originalID >= 0;
-  const bool updateNormals = !isOriginal && normalIdx >= 0;
-
-  MeshGLP<Precision, I> out;
-  out.numProp = 3 + numProp;
-  out.tolerance = impl.tolerance_;
-  if (std::is_same<Precision, float>::value)
-    out.tolerance =
-        std::max(out.tolerance,
-                 static_cast<Precision>(std::numeric_limits<float>::epsilon() *
-                                        impl.bBox_.Scale()));
-  out.triVerts.resize(3 * numTri);
-
-  const int numHalfedge = impl.halfedgeTangent_.size();
-  out.halfedgeTangent.resize(4 * numHalfedge);
-  for (int i = 0; i < numHalfedge; ++i) {
-    const vec4 t = impl.halfedgeTangent_[i];
-    out.halfedgeTangent[4 * i] = t.x;
-    out.halfedgeTangent[4 * i + 1] = t.y;
-    out.halfedgeTangent[4 * i + 2] = t.z;
-    out.halfedgeTangent[4 * i + 3] = t.w;
-  }
-  // Sort the triangles into runs
-  out.faceID.resize(numTri);
-  std::vector<int> triNew2Old(numTri);
-  std::iota(triNew2Old.begin(), triNew2Old.end(), 0);
-  VecView<const TriRef> triRef = impl.meshRelation_.triRef;
-  // Don't sort originals - keep them in order
-  if (!isOriginal) {
-    std::stable_sort(triNew2Old.begin(), triNew2Old.end(),
-                     [triRef](int a, int b) {
-                       return triRef[a].originalID == triRef[b].originalID
-                                  ? triRef[a].meshID < triRef[b].meshID
-                                  : triRef[a].originalID < triRef[b].originalID;
-                     });
-  }
-
-  std::vector<mat3> runNormalTransform;
-  auto addRun = [updateNormals, isOriginal](
-                    MeshGLP<Precision, I>& out,
-                    std::vector<mat3>& runNormalTransform, int tri,
-                    const manifold::Manifold::Impl::Relation& rel) {
-    out.runIndex.push_back(3 * tri);
-    out.runOriginalID.push_back(rel.originalID);
-    if (updateNormals) {
-      runNormalTransform.push_back(NormalTransform(rel.transform) *
-                                   (rel.backSide ? -1.0 : 1.0));
-    }
-    if (!isOriginal) {
-      for (const int col : {0, 1, 2, 3}) {
-        for (const int row : {0, 1, 2}) {
-          out.runTransform.push_back(rel.transform[col][row]);
-        }
-      }
-    }
-  };
-
-  auto meshIDtransform = impl.meshRelation_.meshIDtransform;
-  int lastID = -1;
-  for (int tri = 0; tri < numTri; ++tri) {
-    const int oldTri = triNew2Old[tri];
-    const auto ref = triRef[oldTri];
-    const int meshID = ref.meshID;
-
-    out.faceID[tri] = ref.faceID >= 0 ? ref.faceID : ref.coplanarID;
-    for (const int i : {0, 1, 2})
-      out.triVerts[3 * tri + i] = impl.halfedge_[3 * oldTri + i].startVert;
-
-    if (meshID != lastID) {
-      manifold::Manifold::Impl::Relation rel;
-      auto it = meshIDtransform.find(meshID);
-      if (it != meshIDtransform.end()) rel = it->second;
-      addRun(out, runNormalTransform, tri, rel);
-      meshIDtransform.erase(meshID);
-      lastID = meshID;
-    }
-  }
-  // Add runs for originals that did not contribute any faces to the output
-  for (const auto& pair : meshIDtransform) {
-    addRun(out, runNormalTransform, numTri, pair.second);
-  }
-  out.runIndex.push_back(3 * numTri);
-
-  // Early return for no props
-  if (numProp == 0) {
-    out.vertProperties.resize(3 * numVert);
-    for (int i = 0; i < numVert; ++i) {
-      const vec3 v = impl.vertPos_[i];
-      out.vertProperties[3 * i] = v.x;
-      out.vertProperties[3 * i + 1] = v.y;
-      out.vertProperties[3 * i + 2] = v.z;
-    }
-    return out;
-  }
-  // Duplicate verts with different props
-  std::vector<int> vert2idx(impl.NumVert(), -1);
-  std::vector<std::vector<ivec2>> vertPropPair(impl.NumVert());
-  out.vertProperties.reserve(numVert * static_cast<size_t>(out.numProp));
-
-  for (size_t run = 0; run < out.runOriginalID.size(); ++run) {
-    for (size_t tri = out.runIndex[run] / 3; tri < out.runIndex[run + 1] / 3;
-         ++tri) {
-      for (const int i : {0, 1, 2}) {
-        const int prop = impl.halfedge_[3 * triNew2Old[tri] + i].propVert;
-        const int vert = out.triVerts[3 * tri + i];
-
-        auto& bin = vertPropPair[vert];
-        bool bFound = false;
-        for (const auto& b : bin) {
-          if (b.x == prop) {
-            bFound = true;
-            out.triVerts[3 * tri + i] = b.y;
-            break;
-          }
-        }
-        if (bFound) continue;
-        const int idx = out.vertProperties.size() / out.numProp;
-        out.triVerts[3 * tri + i] = idx;
-        bin.push_back({prop, idx});
-
-        for (int p : {0, 1, 2}) {
-          out.vertProperties.push_back(impl.vertPos_[vert][p]);
-        }
-        for (int p = 0; p < numProp; ++p) {
-          out.vertProperties.push_back(impl.properties_[prop * numProp + p]);
-        }
-
-        if (updateNormals) {
-          vec3 normal;
-          const int start = out.vertProperties.size() - out.numProp;
-          for (int i : {0, 1, 2}) {
-            normal[i] = out.vertProperties[start + 3 + normalIdx + i];
-          }
-          normal = la::normalize(runNormalTransform[run] * normal);
-          for (int i : {0, 1, 2}) {
-            out.vertProperties[start + 3 + normalIdx + i] = normal[i];
-          }
-        }
-
-        if (vert2idx[vert] == -1) {
-          vert2idx[vert] = idx;
-        } else {
-          out.mergeFromVert.push_back(idx);
-          out.mergeToVert.push_back(vert2idx[vert]);
-        }
-      }
-    }
-  }
-  return out;
 }
 }  // namespace
 
@@ -257,7 +96,7 @@ void Quality::SetCircularSegments(int number) {
 int Quality::GetCircularSegments(double radius) {
   if (circularSegments_ > 0) return circularSegments_;
   int nSegA = 360.0 / circularAngle_;
-  int nSegL = 2.0 * radius * kPi / circularEdgeLength_;
+  int nSegL = 2.0 * std::abs(radius) * kPi / circularEdgeLength_;
   int nSeg = fmin(nSegA, nSegL) + 3;
   nSeg -= nSeg % 4;
   return std::max(nSeg, 4);
@@ -456,9 +295,9 @@ Manifold Manifold::SetTolerance(double tolerance) const {
   auto impl = std::make_shared<Impl>(*GetCsgLeafNode().GetImpl());
   if (tolerance > impl->tolerance_) {
     impl->tolerance_ = tolerance;
-    impl->MarkCoplanar();
+    impl->SetNormalsAndCoplanar();
     impl->SimplifyTopology();
-    impl->Finish();
+    impl->SortGeometry();
   } else {
     // for reducing tolerance, we need to make sure it is still at least
     // equal to epsilon.
@@ -480,10 +319,10 @@ Manifold Manifold::Simplify(double tolerance) const {
   if (tolerance == 0) tolerance = oldTolerance;
   if (tolerance > oldTolerance) {
     impl->tolerance_ = tolerance;
-    impl->MarkCoplanar();
+    impl->SetNormalsAndCoplanar();
   }
   impl->SimplifyTopology();
-  impl->Finish();
+  impl->SortGeometry();
   impl->tolerance_ = oldTolerance;
   return Manifold(impl);
 }
@@ -537,8 +376,7 @@ Manifold Manifold::AsOriginal() const {
   }
   auto newImpl = std::make_shared<Impl>(*oldImpl);
   newImpl->InitializeOriginal();
-  newImpl->MarkCoplanar();
-  newImpl->InitializeOriginal(true);
+  newImpl->SetNormalsAndCoplanar();
   return Manifold(std::make_shared<CsgLeafNode>(newImpl));
 }
 
@@ -588,16 +426,23 @@ Manifold Manifold::Translate(vec3 v) const {
 Manifold Manifold::Scale(vec3 v) const { return Manifold(pNode_->Scale(v)); }
 
 /**
- * Applies an Euler angle rotation to the manifold, first about the X axis, then
- * Y, then Z, in degrees. We use degrees so that we can minimize rounding error,
- * and eliminate it completely for any multiples of 90 degrees. Additionally,
- * more efficient code paths are used to update the manifold when the transforms
- * only rotate by multiples of 90 degrees. This operation can be chained.
- * Transforms are combined and applied lazily.
+ * Applies an Euler angle rotation to the manifold, This operation can be
+ * chained. Transforms are combined and applied lazily.
  *
- * @param xDegrees First rotation, degrees about the X-axis.
- * @param yDegrees Second rotation, degrees about the Y-axis.
- * @param zDegrees Third rotation, degrees about the Z-axis.
+ * We use degrees so that we can minimize rounding error, and eliminate it
+ * completely for any multiples of 90 degrees. Additionally, more efficient code
+ * paths are used to update the manifold when the transforms only rotate by
+ * multiples of 90 degrees.
+ *
+ * From the reference frame of the model being rotated, rotations are applied in
+ * *z-y'-x"* order. That is yaw first, then pitch and finally roll.
+ *
+ * From the global reference frame, a model will be rotated in *x-y-z* order.
+ * That is about the global X axis, then global Y axis, and finally global Z.
+ *
+ * @param xDegrees First rotation, degrees about the global X-axis.
+ * @param yDegrees Second rotation, degrees about the global Y-axis.
+ * @param zDegrees Third rotation, degrees about the global Z-axis.
  */
 Manifold Manifold::Rotate(double xDegrees, double yDegrees,
                           double zDegrees) const {
@@ -654,7 +499,7 @@ Manifold Manifold::Warp(std::function<void(vec3&)> warpFunc) const {
 }
 
 /**
- * Same as Manifold::Warp but calls warpFunc with with
+ * Same as Manifold::Warp but calls warpFunc with
  * a VecView which is roughly equivalent to std::span
  * pointing to all vec3 elements to be modified in-place
  *
@@ -812,8 +657,8 @@ Manifold Manifold::SmoothOut(double minSharpAngle, double minSmoothness) const {
       pImpl->CreateTangents(0);
       // Reset the properties to the original values, removing temporary normals
       pImpl->numProp_ = numProp;
-      pImpl->properties_.swap(properties);
-      pImpl->halfedge_.swap(halfedge);
+      pImpl->properties_ = std::move(properties);
+      pImpl->halfedge_ = std::move(halfedge);
     } else {
       pImpl->CreateTangents(pImpl->SharpenEdges(minSharpAngle, minSmoothness));
     }
@@ -1003,6 +848,7 @@ std::pair<Manifold, Manifold> Manifold::Split(const Manifold& cutter) const {
  */
 std::pair<Manifold, Manifold> Manifold::SplitByPlane(
     vec3 normal, double originOffset) const {
+  if (IsEmpty()) return {Manifold(), Manifold()};
   return Split(Halfspace(BoundingBox(), normal, originOffset));
 }
 
@@ -1017,6 +863,36 @@ std::pair<Manifold, Manifold> Manifold::SplitByPlane(
  */
 Manifold Manifold::TrimByPlane(vec3 normal, double originOffset) const {
   return *this ^ Halfspace(BoundingBox(), normal, originOffset);
+}
+
+/**
+ * Compute the minkowski sum of this manifold with another.
+ * This corresponds to the morphological dilation of the manifold.
+ *
+ * @note Performance is best when using convex objects. For non-convex inputs,
+ * performance scales with the product of face counts, so keep face counts low.
+ *
+ * @param other The other manifold to minkowski sum to this one.
+ */
+Manifold Manifold::MinkowskiSum(const Manifold& other) const {
+  auto aImpl = GetCsgLeafNode().GetImpl();
+  auto bImpl = other.GetCsgLeafNode().GetImpl();
+  return aImpl->Minkowski(*bImpl, false);
+}
+
+/**
+ * Subtract the sweep of the other manifold across this manifold's surface.
+ * This corresponds to the morphological erosion of the manifold.
+ *
+ * @note Performance is best when using convex objects. For non-convex inputs,
+ * performance scales with the product of face counts, so keep face counts low.
+ *
+ * @param other The other manifold to minkowski subtract from this one.
+ */
+Manifold Manifold::MinkowskiDifference(const Manifold& other) const {
+  auto aImpl = GetCsgLeafNode().GetImpl();
+  auto bImpl = other.GetCsgLeafNode().GetImpl();
+  return aImpl->Minkowski(*bImpl, true);
 }
 
 /**
@@ -1069,7 +945,18 @@ Manifold Manifold::Hull() const {
  * @param manifolds A vector of manifolds over which to compute a convex hull.
  */
 Manifold Manifold::Hull(const std::vector<Manifold>& manifolds) {
-  return Compose(manifolds).Hull();
+  std::vector<vec3> vertPos;
+  size_t size = 0;
+  for (const auto& man : manifolds) size += man.NumVert();
+  if (size == 0) return Manifold();
+  vertPos.reserve(size);
+  for (const auto& man : manifolds) {
+    const auto& impl = man.pNode_->ToLeafNode()->GetImpl();
+    vertPos.insert(vertPos.end(), impl->vertPos_.begin(), impl->vertPos_.end());
+  }
+  std::shared_ptr<Impl> impl = std::make_shared<Impl>();
+  impl->Hull(VecView<const vec3>(vertPos));
+  return Manifold(std::make_shared<CsgLeafNode>(impl));
 }
 
 /**
