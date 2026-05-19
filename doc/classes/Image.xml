@@ -84,7 +84,7 @@
 				Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.
 				The [param source] parameter helps to pick the best compression method for DXT and ETC2 formats. It is ignored for ASTC compression.
 				The [param astc_format] parameter is only taken into account when using ASTC compression; it is ignored for all other formats.
-				[b]Note:[/b] [method compress] is only supported in editor builds. When run in an exported project, this method always returns [constant ERR_UNAVAILABLE].
+				[b]Note:[/b] Unlike the upstream, this fork (66) supports compression in an exported project.
 			</description>
 		</method>
 		<method name="compress_from_channels">
@@ -96,7 +96,7 @@
 				Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.
 				This is an alternative to [method compress] that lets the user supply the channels used in order for the compressor to pick the best DXT and ETC2 formats. For other formats (non DXT or ETC2), this argument is ignored.
 				The [param astc_format] parameter is only taken into account when using ASTC compression; it is ignored for all other formats.
-				[b]Note:[/b] [method compress_from_channels] is only supported in editor builds. When run in an exported project, this method always returns [constant ERR_UNAVAILABLE].
+				[b]Note:[/b] Unlike the upstream, this fork (66) supports compression in an exported project.
 			</description>
 		</method>
 		<method name="compute_image_metrics">

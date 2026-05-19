@@ -30,7 +30,7 @@
 
 #pragma once
 
-#ifdef TOOLS_ENABLED
+//#ifdef TOOLS_ENABLED // 66
 
 #include "core/io/image.h"
 
@@ -54,4 +54,4 @@ void _compress_bc(Image *r_img, Image::UsedChannels p_channels);
 
 void _compress_etcpak(EtcpakType p_compress_type, Image *r_img);
 
-#endif // TOOLS_ENABLED
+//#endif // TOOLS_ENABLED // 66

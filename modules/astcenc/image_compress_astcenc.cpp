@@ -35,7 +35,7 @@
 
 #include <astcenc.h>
 
-#ifdef TOOLS_ENABLED
+//#ifdef TOOLS_ENABLED // 66
 void _compress_astc(Image *r_img, Image::ASTCFormat p_format) {
 	const uint64_t start_time = OS::get_singleton()->get_ticks_msec();
 
@@ -172,7 +172,7 @@ void _compress_astc(Image *r_img, Image::ASTCFormat p_format) {
 
 	print_verbose(vformat("astcenc: Encoding took %d ms.", OS::get_singleton()->get_ticks_msec() - start_time));
 }
-#endif // TOOLS_ENABLED
+//#endif // TOOLS_ENABLED // 66
 
 void _decompress_astc(Image *r_img) {
 	const uint64_t start_time = OS::get_singleton()->get_ticks_msec();
