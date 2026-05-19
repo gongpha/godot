@@ -200,6 +200,21 @@ TEST_CASE("[Image] Saving and loading") {
 			image_png->load_png_from_buffer(data_png) == OK,
 			"The PNG image should load successfully.");
 
+// 66 begin
+#ifdef MODULE_ICO_ENABLED
+	// Load ICO
+	Ref<Image> image_ico = memnew(Image());
+	Ref<FileAccess> f_ico = FileAccess::open(TestUtils::get_data_path("images/icon.ico"), FileAccess::READ, &err);
+	REQUIRE(f_ico.is_valid());
+	PackedByteArray data_ico;
+	data_ico.resize(f_ico->get_length() + 1);
+	f_ico->get_buffer(data_ico.ptrw(), f_ico->get_length());
+	CHECK_MESSAGE(
+			image_ico->load_ico_from_buffer(data_ico) == OK,
+			"The ICO image should load successfully.");
+#endif // MODULE_ICO_ENABLED
+	// 66 end
+
 #ifdef MODULE_TGA_ENABLED
 	// Load TGA
 	Ref<Image> image_tga = memnew(Image());

@@ -412,6 +412,16 @@
 				[b]Note:[/b] This method is only available in engine builds with the SVG module enabled. By default, the SVG module is enabled, but it can be disabled at build-time using the [code]module_svg_enabled=no[/code] SCons option.
 			</description>
 		</method>
+		<!-- 66 begin -->
+		<method name="load_ico_from_buffer">
+			<return type="int" enum="Error" />
+			<param index="0" name="buffer" type="PackedByteArray" />
+			<description>
+				Loads an image from the binary contents of an ICO file.
+				[b]Note:[/b] This method is only available in engine builds with the ICO module enabled. By default, the ICO module is enabled, but it can be disabled at build-time using the [code]module_ico_enabled=no[/code] SCons option.
+			</description>
+		</method>
+		<!-- 66 end -->
 		<method name="load_tga_from_buffer">
 			<return type="int" enum="Error" />
 			<param index="0" name="buffer" type="PackedByteArray" />

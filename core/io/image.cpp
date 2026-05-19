@@ -3936,6 +3936,7 @@ void Image::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("load_webp_from_buffer", "buffer"), &Image::load_webp_from_buffer);
 	ClassDB::bind_method(D_METHOD("load_tga_from_buffer", "buffer"), &Image::load_tga_from_buffer);
 	ClassDB::bind_method(D_METHOD("load_bmp_from_buffer", "buffer"), &Image::load_bmp_from_buffer);
+	ClassDB::bind_method(D_METHOD("load_ico_from_buffer", "buffer"), &Image::load_ico_from_buffer); // 66
 	ClassDB::bind_method(D_METHOD("load_ktx_from_buffer", "buffer"), &Image::load_ktx_from_buffer);
 	ClassDB::bind_method(D_METHOD("load_dds_from_buffer", "buffer"), &Image::load_dds_from_buffer);
 	ClassDB::bind_method(D_METHOD("load_exr_from_buffer", "buffer"), &Image::load_exr_from_buffer);
@@ -4465,6 +4466,16 @@ Error Image::load_bmp_from_buffer(const Vector<uint8_t> &p_array) {
 			"The BMP module isn't enabled. Recompile the Godot editor or export template binary with the `module_bmp_enabled=yes` SCons option.");
 	return _load_from_buffer(p_array, _bmp_mem_loader_func);
 }
+
+// 66 begin
+Error Image::load_ico_from_buffer(const Vector<uint8_t> &p_array) {
+	ERR_FAIL_NULL_V_MSG(
+			_ico_mem_loader_func,
+			ERR_UNAVAILABLE,
+			"The ICO module isn't enabled. Recompile the Godot editor or export template binary with the `module_ico_enabled=yes` SCons option.");
+	return _load_from_buffer(p_array, _ico_mem_loader_func);
+}
+// 66 end
 
 Error Image::load_dds_from_buffer(const Vector<uint8_t> &p_array) {
 	ERR_FAIL_NULL_V_MSG(

@@ -216,6 +216,7 @@ public:
 	static inline ImageMemLoadFunc _webp_mem_loader_func = nullptr;
 	static inline ImageMemLoadFunc _tga_mem_loader_func = nullptr;
 	static inline ImageMemLoadFunc _bmp_mem_loader_func = nullptr;
+	static inline ImageMemLoadFunc _ico_mem_loader_func = nullptr; // 66
 	static inline ScalableImageMemLoadFunc _svg_scalable_mem_loader_func = nullptr;
 	static inline ImageMemLoadFunc _ktx_mem_loader_func = nullptr;
 	static inline ImageMemLoadFunc _dds_mem_loader_func = nullptr;
@@ -434,6 +435,7 @@ public:
 	Error load_webp_from_buffer(const Vector<uint8_t> &p_array);
 	Error load_tga_from_buffer(const Vector<uint8_t> &p_array);
 	Error load_bmp_from_buffer(const Vector<uint8_t> &p_array);
+	Error load_ico_from_buffer(const Vector<uint8_t> &p_array); // 66
 	Error load_ktx_from_buffer(const Vector<uint8_t> &p_array);
 	Error load_dds_from_buffer(const Vector<uint8_t> &p_array);
 	Error load_exr_from_buffer(const Vector<uint8_t> &p_array);
