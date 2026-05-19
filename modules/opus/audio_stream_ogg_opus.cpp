@@ -70,16 +70,19 @@ int AudioStreamPlaybackOggOpus::_mix_internal(AudioFrame *p_buffer, int p_frames
 		if (beat_length_frames >= 0) {
 			if (use_loop && beat_length_frames <= (int64_t)frames_mixed) {
 				// Pre-fill fade buffer.
-				float tmp[FADE_SIZE * 2];
-				int r = op_read_float_stereo(opus_file, tmp, FADE_SIZE * 2);
-				int faded_mix = MAX(r, 0);
-				for (int i = 0; i < FADE_SIZE; i++) {
-					if (i < faded_mix) {
-						loop_fade[i].left = tmp[i * 2 + 0];
-						loop_fade[i].right = tmp[i * 2 + 1];
-					} else {
-						loop_fade[i] = AudioFrame(0, 0);
+				int faded_mix = 0;
+				while (faded_mix < FADE_SIZE) {
+					int r = op_read_float_stereo(opus_file, (float *)(loop_fade + faded_mix), (FADE_SIZE - faded_mix) * 2);
+					if (r == OP_HOLE) {
+						continue;
 					}
+					if (r <= 0) {
+						break;
+					}
+					faded_mix += r;
+				}
+				for (int i = faded_mix; i < FADE_SIZE; i++) {
+					loop_fade[i] = AudioFrame(0, 0);
 				}
 				loop_fade_remaining = 0;
 
@@ -114,25 +117,20 @@ int AudioStreamPlaybackOggOpus::_mix_frames(AudioFrame *p_buffer, int p_frames) 
 		return 0;
 	}
 	// libopusfile always decodes at 48kHz. We'll read float stereo regardless of original mapping.
-	//const int buf_vals = p_frames * 2; // stereo interleaved
-	float tmp[FADE_SIZE * 2];
 	int total = 0;
 	while (total < p_frames) {
-		int chunk = MIN(FADE_SIZE, p_frames - total);
-		int r = op_read_float_stereo(opus_file, tmp, chunk * 2);
+		int r = op_read_float_stereo(opus_file, (float *)(p_buffer + total), (p_frames - total) * 2);
+		if (r == OP_HOLE) {
+			continue;
+		}
 		if (r < 0) {
-			// Error or hole, treat as silence for this call.
+			// Error, treat as silence for this call.
 			WARN_PRINT("Error reading Opus stream");
 			break;
 		}
 		if (r == 0) {
 			// EOF
 			break;
-		}
-		// r is samples per channel written (interleaved stereo => 2*r values used)
-		for (int i = 0; i < r; i++) {
-			p_buffer[total + i].left = tmp[i * 2 + 0];
-			p_buffer[total + i].right = tmp[i * 2 + 1];
 		}
 		total += r;
 	}
@@ -181,15 +179,7 @@ int AudioStreamPlaybackOggOpus::get_loop_count() const {
 }
 
 double AudioStreamPlaybackOggOpus::get_playback_position() const {
-	// op_pcm_tell returns position in samples at 48 kHz per channel.
-	if (!opus_file) {
-		return 0.0;
-	}
-	ogg_int64_t pos = op_pcm_tell(opus_file);
-	if (pos < 0) {
-		pos = 0;
-	}
-	return double(pos) / 48000.0;
+	return double(frames_mixed) / 48000.0;
 }
 
 void AudioStreamPlaybackOggOpus::tag_used_streams() {
