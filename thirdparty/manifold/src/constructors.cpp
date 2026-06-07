@@ -1,4 +1,4 @@
-// Copyright 2021 The Manifold Authors.
+// Copyright 2026 The Manifold Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,38 +18,6 @@
 #include "manifold/manifold.h"
 #include "manifold/polygon.h"
 #include "parallel.h"
-
-namespace {
-using namespace manifold;
-
-template <typename P, typename I>
-std::shared_ptr<Manifold::Impl> SmoothImpl(
-    const MeshGLP<P, I>& meshGL,
-    const std::vector<Smoothness>& sharpenedEdges) {
-  DEBUG_ASSERT(meshGL.halfedgeTangent.empty(), std::runtime_error,
-               "when supplying tangents, the normal constructor should be used "
-               "rather than Smooth().");
-
-  MeshGLP<P, I> meshTmp = meshGL;
-  meshTmp.faceID.resize(meshGL.NumTri());
-  std::iota(meshTmp.faceID.begin(), meshTmp.faceID.end(), 0);
-
-  std::shared_ptr<Manifold::Impl> impl =
-      std::make_shared<Manifold::Impl>(meshTmp);
-  impl->CreateTangents(impl->UpdateSharpenedEdges(sharpenedEdges));
-  // Restore the original faceID
-  const size_t numTri = impl->NumTri();
-  for (size_t i = 0; i < numTri; ++i) {
-    if (meshGL.faceID.size() == numTri) {
-      impl->meshRelation_.triRef[i].faceID =
-          meshGL.faceID[impl->meshRelation_.triRef[i].faceID];
-    } else {
-      impl->meshRelation_.triRef[i].faceID = -1;
-    }
-  }
-  return impl;
-}
-}  // namespace
 
 namespace manifold {
 /**
@@ -82,7 +50,7 @@ namespace manifold {
  */
 Manifold Manifold::Smooth(const MeshGL& meshGL,
                           const std::vector<Smoothness>& sharpenedEdges) {
-  return Manifold(SmoothImpl(meshGL, sharpenedEdges));
+  return Manifold(MakeSmoothImpl(meshGL, sharpenedEdges));
 }
 
 /**
@@ -115,7 +83,7 @@ Manifold Manifold::Smooth(const MeshGL& meshGL,
  */
 Manifold Manifold::Smooth(const MeshGL64& meshGL64,
                           const std::vector<Smoothness>& sharpenedEdges) {
-  return Manifold(SmoothImpl(meshGL64, sharpenedEdges));
+  return Manifold(MakeSmoothImpl(meshGL64, sharpenedEdges));
 }
 
 /**
@@ -210,7 +178,9 @@ Manifold Manifold::Sphere(double radius, int circularSegments) {
   pImpl_->Subdivide([n](vec3, vec4, vec4) { return n - 1; });
   for_each_n(autoPolicy(pImpl_->NumVert(), 1e5), pImpl_->vertPos_.begin(),
              pImpl_->NumVert(), [radius](vec3& v) {
-               v = la::cos(kHalfPi * (1.0 - v));
+               v = vec3(la::cos(kHalfPi * (1.0 - v.x)),
+                        la::cos(kHalfPi * (1.0 - v.y)),
+                        la::cos(kHalfPi * (1.0 - v.z)));
                v = radius * la::normalize(v);
                if (std::isnan(v.x)) v = vec3(0.0);
              });
@@ -484,11 +454,15 @@ Manifold Manifold::Compose(const std::vector<Manifold>& manifolds) {
  */
 std::vector<Manifold> Manifold::Decompose() const {
   ZoneScoped;
-  DisjointSets uf(NumVert());
-  // Graph graph;
   auto pImpl_ = GetCsgLeafNode().GetImpl();
-  for (const Halfedge& halfedge : pImpl_->halfedge_) {
-    if (halfedge.IsForward()) uf.unite(halfedge.startVert, halfedge.endVert);
+  if (pImpl_->status_ != Error::NoError) {
+    return {PropagateStatus(pImpl_->status_)};
+  }
+  DisjointSets uf(NumVert());
+  for (size_t edge = 0; edge < pImpl_->halfedge_.size(); ++edge) {
+    if (pImpl_->halfedge_.IsForward(edge)) {
+      uf.unite(pImpl_->halfedge_.Start(edge), pImpl_->halfedge_.End(edge));
+    }
   }
   std::vector<int> componentIndices;
   const int numComponents = uf.connectedComponents(componentIndices);
@@ -521,17 +495,16 @@ std::vector<Manifold> Manifold::Decompose() const {
     gather(vertNew2Old.begin(), vertNew2Old.end(), pImpl_->vertNormal_.begin(),
            impl->vertNormal_.begin());
 
-    Vec<int> faceNew2Old(NumTri());
+    Vec<int> faceNew2Old;
+    faceNew2Old.reserve(NumTri());
     const auto& halfedge = pImpl_->halfedge_;
-    const int nFace =
-        copy_if(countAt(0_uz), countAt(NumTri()), faceNew2Old.begin(),
-                [i, &vertLabel, &halfedge](int face) {
-                  return vertLabel[halfedge[3 * face].startVert] == i;
-                }) -
-        faceNew2Old.begin();
+    for (size_t face = 0; face < NumTri(); ++face) {
+      if (vertLabel[halfedge.Start(static_cast<int>(3 * face))] == i) {
+        faceNew2Old.push_back(static_cast<int>(face));
+      }
+    }
 
-    if (nFace == 0) continue;
-    faceNew2Old.resize(nFace);
+    if (faceNew2Old.empty()) continue;
 
     impl->GatherFaces(*pImpl_, faceNew2Old);
     impl->ReindexVerts(vertNew2Old, pImpl_->NumVert());

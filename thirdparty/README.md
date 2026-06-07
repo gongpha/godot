@@ -671,7 +671,7 @@ See `linuxbsd_headers/README.md`.
 ## manifold
 
 - Upstream: https://github.com/elalish/manifold
-- Version: 3.4.1 [!!! 66 !!!]
+- Version: 3.5.1 [!!! 66 !!!]
 - License: Apache 2.0
 
 File extracted from upstream source:

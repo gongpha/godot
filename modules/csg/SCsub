@@ -32,6 +32,8 @@ thirdparty_sources = [
     "src/subdivision.cpp",
     "src/tree2d.cpp",
     "src/cross_section/cross_section.cpp",  # 66
+    "src/cross_section/cross_section_boolean2.cpp",  # 66
+    "src/execution_impl.cpp",  # 66
 ]
 
 thirdparty_sources = [thirdparty_dir + file for file in thirdparty_sources]

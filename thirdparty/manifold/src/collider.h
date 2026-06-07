@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #pragma once
+#include "execution_impl.h"
 #include "manifold/common.h"
 #include "parallel.h"
 #include "utils.h"
@@ -281,6 +282,11 @@ class Collider {
     UpdateBoxes(leafBB);
   }
 
+  Box GetBoundingBox() const {
+    if (nodeBBox_.empty()) return Box();
+    return nodeBBox_[collider_internal::Internal2Node(0)];
+  }
+
   void UpdateBoxes(const VecView<const Box>& leafBB) {
     ZoneScoped;
     DEBUG_ASSERT(leafBB.size() == NumLeaves(), userErr,
@@ -300,20 +306,21 @@ class Collider {
     ZoneScoped;
     DEBUG_ASSERT(IsAxisAligned(transform), userErr,
                  "transform must be axis-aligned");
-    for_each(autoPolicy(nodeBBox_.size()), countAt(0),
+    for_each(autoPolicy(nodeBBox_.size()), countAt(0_uz),
              countAt(nodeBBox_.size()), [&transform, this](size_t i) {
                nodeBBox_[i] = nodeBBox_[i].Transform(transform);
              });
   }
 
   template <const bool selfCollision = false, typename F, typename Recorder>
-  void Collisions(Recorder& recorder, F f, int n, bool parallel = true) const {
+  void Collisions(Recorder& recorder, F f, int n, bool parallel = true,
+                  ExecutionContext::Impl* ctx = nullptr) const {
     ZoneScoped;
     using collider_internal::FindCollision;
     if (internalChildren_.empty()) return;
     for_each_n(parallel ? autoPolicy(n, collider_internal::kSequentialThreshold)
                         : ExecutionPolicy::Seq,
-               countAt(0), n,
+               countAt(0), n, ctx,
                FindCollision<decltype(f), selfCollision, Recorder>{
                    f, nodeBBox_, internalChildren_, recorder});
   }
@@ -329,9 +336,10 @@ class Collider {
   // If thread local storage is not needed, use SimpleRecorder.
   template <const bool selfCollision = false, typename T, typename Recorder>
   void Collisions(Recorder& recorder, const VecView<const T>& queriesIn,
-                  bool parallel = true) const {
+                  bool parallel = true,
+                  ExecutionContext::Impl* ctx = nullptr) const {
     auto f = [queriesIn](const int i) { return queriesIn[i]; };
-    Collisions<selfCollision>(recorder, f, queriesIn.size(), parallel);
+    Collisions<selfCollision>(recorder, f, queriesIn.size(), parallel, ctx);
   }
 
   static uint32_t MortonCode(vec3 position, Box bBox) {
