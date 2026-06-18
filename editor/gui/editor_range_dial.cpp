@@ -29,6 +29,7 @@
 /**************************************************************************/
 
 #include "editor_range_dial.h"
+
 #include "core/object/class_db.h"
 #include "editor/editor_string_names.h"
 #include "editor/settings/editor_settings.h"
@@ -306,7 +307,7 @@ EditorRangeDial *EditorRangeDialPopup::get_dial() const {
 	return dial;
 }
 
-void EditorRangeDialPopup::_pre_popup() {
+void EditorRangeDialPopup::_pre_popup(const Size2i &p_size) {
 	set_min_size(Vector2(350, 48) * EDSCALE);
 	reset_size();
 	set_flag(Window::FLAG_NO_FOCUS, true);

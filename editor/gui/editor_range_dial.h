@@ -70,7 +70,7 @@ class EditorRangeDialPopup : public PopupPanel {
 	EditorRangeDial *dial;
 
 protected:
-	virtual void _pre_popup() override;
+	virtual void _pre_popup(const Size2i &p_size) override;
 
 	static void _bind_methods();
 
