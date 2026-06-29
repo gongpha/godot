@@ -128,6 +128,7 @@ void MultiplayerSynchronizer::reset() {
 	interpolation_fraction = 0.0;
 	last_sync_receive_usec = 0;
 	sync_receive_interval_usec = 0;
+	interpolation_skip_count = 0;
 	// 66 end
 }
 
@@ -678,6 +679,26 @@ void MultiplayerSynchronizer::notify_sync_receive() {
 
 	uint64_t current_usec = OS::get_singleton()->get_ticks_usec();
 
+	// 66: if skipping stale syncs after reset, override raw-written values
+	// with our saved snapshot and bail out
+	if (interpolation_skip_count > 0) {
+		interpolation_skip_count--;
+		for (int i = 0; i < interpolation_states.size(); i++) {
+			InterpolationState &state = interpolation_states.write[i];
+			if (!state.valid) {
+				continue;
+			}
+			Object *obj = _get_prop_target(node, state.prop);
+			if (!obj) {
+				continue;
+			}
+			// override the raw-written stale value with our saved snapshot
+			obj->set_indexed(state.prop.get_subnames(), state.to_value);
+		}
+		last_sync_receive_usec = current_usec;
+		return;
+	}
+
 	// calculate interval between syncs
 	if (last_sync_receive_usec > 0) {
 		sync_receive_interval_usec = current_usec - last_sync_receive_usec;
@@ -731,10 +752,41 @@ void MultiplayerSynchronizer::notify_sync_receive() {
 }
 
 void MultiplayerSynchronizer::reset_interpolation() {
-	interpolation_states.clear();
-	interpolation_fraction = 0.0;
-	last_sync_receive_usec = 0;
-	sync_receive_interval_usec = 0;
+	// 66: snapshot current property values so _apply_interpolation keeps
+	// overriding any raw sync writes with the correct pre-reset position.
+	Node *node = get_root_node();
+	if (node && _has_interpolate_properties()) {
+		const List<NodePath> &interp_props = replication_config->get_interpolate_properties();
+		interpolation_states.resize(interp_props.size());
+		int idx = 0;
+		for (const NodePath &prop : interp_props) {
+			InterpolationState &state = interpolation_states.write[idx];
+			Object *obj = _get_prop_target(node, prop);
+			if (obj) {
+				bool valid = false;
+				Variant current_value = obj->get_indexed(prop.get_subnames(), &valid);
+				if (valid) {
+					state.prop = prop;
+					state.from_value = current_value;
+					state.to_value = current_value;
+					state.valid = true;
+				} else {
+					state.valid = false;
+				}
+			} else {
+				state.valid = false;
+			}
+			idx++;
+		}
+		// skip the next incoming sync to avoid stale data from before the reset
+		interpolation_skip_count = 1;
+	} else {
+		interpolation_states.clear();
+		interpolation_skip_count = 0;
+	}
+
+	interpolation_fraction = 1.0;
+	// keep sync_receive_interval_usec so _apply_interpolation doesn't early-return
 }
 
 // ts is cl_fullupdate from source engine ?

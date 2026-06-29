@@ -82,6 +82,7 @@ private:
 	double interpolation_fraction = 0.0;
 	uint64_t last_sync_receive_usec = 0;
 	uint64_t sync_receive_interval_usec = 0;
+	int interpolation_skip_count = 0; // skip N incoming syncs after reset to avoid stale data
 	// 66 end
 
 	static Object *_get_prop_target(Object *p_obj, const NodePath &p_prop);
