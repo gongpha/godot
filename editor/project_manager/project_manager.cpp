@@ -146,6 +146,9 @@ void ProjectManager::_notification(int p_what) {
 			}
 			_update_list_placeholder();
 		} break;
+		case NOTIFICATION_RESIZED: {
+			project_list->resize_project_titles();
+		} break;
 	}
 }
 
@@ -595,6 +598,10 @@ void ProjectManager::_open_selected_projects() {
 			args.push_back("--verbose");
 		}
 
+		if (ask_upgrade_tool->is_pressed()) {
+			args.push_back("--run-upgrade-tool");
+		}
+
 		Error err = OS::get_singleton()->create_instance(args);
 		if (err != OK) {
 			loading_label->hide();
@@ -635,9 +642,11 @@ void ProjectManager::_open_selected_projects_check_warnings() {
 
 	ask_update_label->set_horizontal_alignment(HORIZONTAL_ALIGNMENT_LEFT); // Reset in case of previous center align.
 	ask_update_backup->set_pressed(false);
+	ask_upgrade_tool->set_pressed(false);
 	full_convert_button->hide();
 	migration_guide_button->hide();
 	ask_update_backup->hide();
+	ask_upgrade_tool->hide();
 
 	ask_update_settings->get_ok_button()->set_text("OK");
 
@@ -684,7 +693,10 @@ void ProjectManager::_open_selected_projects_check_warnings() {
 				i--;
 			} else if (ProjectList::project_feature_looks_like_version(feature)) {
 				ask_update_backup->show();
-				migration_guide_button->show();
+				if (project.control->is_older_version()) {
+					ask_upgrade_tool->show();
+					migration_guide_button->show();
+				}
 				version_convert_feature = feature;
 				warning_message += vformat(TTR("Warning: This project was last edited in Godot %s. Opening will change it to Godot %s.\n\n"), Variant(feature), Variant(GODOT_VERSION_BRANCH));
 				unsupported_features.remove_at(i);
@@ -745,6 +757,7 @@ void ProjectManager::_open_selected_projects_with_migration() {
 	}
 #endif
 	_open_selected_projects();
+	ask_upgrade_tool->set_pressed(false);
 }
 
 void ProjectManager::_install_project(const String &p_zip_path, const String &p_title) {
@@ -1579,6 +1592,7 @@ ProjectManager::ProjectManager() {
 
 			filter_option = memnew(OptionButton);
 			filter_option->set_clip_text(true);
+			filter_option->set_fit_to_longest_item(false);
 			filter_option->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			filter_option->set_stretch_ratio(0.3);
 			filter_option->set_accessibility_name(TTRC("Sort:"));
@@ -1846,6 +1860,11 @@ ProjectManager::ProjectManager() {
 		ask_update_backup->set_text(TTRC("Backup project first"));
 		ask_update_backup->set_h_size_flags(SIZE_SHRINK_CENTER);
 		ask_update_vb->add_child(ask_update_backup);
+		ask_upgrade_tool = memnew(CheckBox);
+		ask_upgrade_tool->set_text(TTRC("Upgrade All Project Files"));
+		ask_upgrade_tool->set_tooltip_text(TTRC("Automatically runs the upgrade tool. This may take a while to finish. The project will be restarted once in the process."));
+		ask_upgrade_tool->set_h_size_flags(SIZE_SHRINK_CENTER);
+		ask_update_vb->add_child(ask_upgrade_tool);
 		ask_update_settings->get_ok_button()->connect(SceneStringName(pressed), callable_mp(this, &ProjectManager::_open_selected_projects_with_migration));
 		int ed_swap_cancel_ok = EDITOR_GET("interface/editor/appearance/accept_dialog_cancel_ok_buttons");
 		if (ed_swap_cancel_ok == 0) {
