@@ -35,26 +35,26 @@
 
 static const String boundary_chars = "/\\-_. ";
 
-static bool _is_valid_interval_66(const Vector2i &p_interval) {
+static bool _is_valid_interval(const Vector2i &p_interval) {
 	// Empty intervals are represented as (-1, -1).
 	return p_interval.x >= 0 && p_interval.y >= p_interval.x;
 }
 
-static Vector2i _extend_interval_66(const Vector2i &p_a, const Vector2i &p_b) {
-	if (!_is_valid_interval_66(p_a)) {
+static Vector2i _extend_interval(const Vector2i &p_a, const Vector2i &p_b) {
+	if (!_is_valid_interval(p_a)) {
 		return p_b;
 	}
-	if (!_is_valid_interval_66(p_b)) {
+	if (!_is_valid_interval(p_b)) {
 		return p_a;
 	}
 	return Vector2i(MIN(p_a.x, p_b.x), MAX(p_a.y, p_b.y));
 }
 
-static bool _is_word_boundary_66(const String &p_str, int p_index) {
+static bool _is_word_boundary(const String &p_str, int p_index) {
 	if (p_index == -1 || p_index == p_str.size()) {
 		return true;
 	}
-	return boundary_chars_66.find_char(p_str[p_index]) != -1;
+	return boundary_chars.find_char(p_str[p_index]) != -1;
 }
 
 bool FuzzySearchToken::try_exact_match(FuzzyTokenMatch &p_match, const String &p_target, int p_offset) const {
@@ -108,11 +108,11 @@ void FuzzyTokenMatch::add_substring(int p_substring_start, int p_substring_lengt
 	substrings.append(Vector2i(p_substring_start, p_substring_length));
 	matched_length += p_substring_length;
 	Vector2i substring_interval = { p_substring_start, p_substring_start + p_substring_length - 1 };
-	interval = _extend_interval_66(interval, substring_interval);
+	interval = _extend_interval(interval, substring_interval);
 }
 
 bool FuzzyTokenMatch::intersects(const Vector2i &p_other_interval) const {
-	if (!_is_valid_interval_66(interval) || !_is_valid_interval_66(p_other_interval)) {
+	if (!_is_valid_interval(interval) || !_is_valid_interval(p_other_interval)) {
 		return false;
 	}
 	return interval.y >= p_other_interval.x && interval.x <= p_other_interval.y;
@@ -163,7 +163,7 @@ void FuzzySearchMatch::_score_token_match(FuzzyTokenMatch &p_match, bool p_case_
 			substring_score *= 2;
 		}
 		// Score matches on a word boundary higher than matches within a word
-		if (_is_word_boundary_66(target, substring.x - 1) || _is_word_boundary_66(target, substring.x + substring.y)) {
+		if (_is_word_boundary(target, substring.x - 1) || _is_word_boundary(target, substring.x + substring.y)) {
 			substring_score += 4;
 		}
 		// Score exact query matches higher than non-compact subsequence matches
@@ -204,7 +204,7 @@ void FuzzySearchMatch::_maybe_apply_token_order_score_bonus() {
 
 void FuzzySearchMatch::_add_token_match(const FuzzyTokenMatch &p_match) {
 	score += p_match.score;
-	match_interval = _extend_interval_66(match_interval, p_match.interval);
+	match_interval = _extend_interval(match_interval, p_match.interval);
 	miss_budget -= p_match.get_miss_count();
 	token_matches.append(p_match);
 }
@@ -362,7 +362,7 @@ bool FuzzySearch::_search_tokens(const Vector<FuzzySearchToken> &p_tokens, const
 					best_match = match;
 				}
 			}
-			if (_is_valid_interval_66(match.interval)) {
+			if (_is_valid_interval(match.interval)) {
 				offset = match.interval.x + 1;
 			} else {
 				break;
