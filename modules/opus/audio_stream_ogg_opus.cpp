@@ -255,10 +255,6 @@ Ref<AudioStreamPlayback> AudioStreamOggOpus::instantiate_playback() {
 	return Ref<AudioStreamPlayback>();
 }
 
-String AudioStreamOggOpus::get_stream_name() const {
-	return "";
-}
-
 static bool _opus_parse_tags(OggOpusFile *of, Dictionary &r_tags) {
 	const OpusTags *t = op_tags(of, -1);
 	if (!t) {
