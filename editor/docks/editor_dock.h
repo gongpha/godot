@@ -108,7 +108,7 @@ protected:
 	GDVIRTUAL2(_load_layout_from_config, Ref<ConfigFile>, const String &)
 
 #ifndef DISABLE_DEPRECATED
-	GDVIRTUAL1_COMPAT(_update_layout_, _update_layout, int)
+	GDVIRTUAL1_COMPAT(_update_layout_bind_compat_117080, _update_layout, int)
 #endif
 
 public:
@@ -161,7 +161,7 @@ public:
 	void update_tab_style();
 	Ref<Texture2D> get_effective_icon(const Callable &p_icon_fetch);
 
-	virtual void update_layout(DockLayout p_layout, DockSlot p_slot) { GDVIRTUAL_CALL(_update_layout, p_layout, p_slot); }
+	virtual void update_layout(DockLayout p_layout, int p_slot) { GDVIRTUAL_CALL(_update_layout, p_layout, p_slot); }
 	DockLayout get_current_layout() const { return current_layout; }
 	DockSlot get_current_slot() const { return (DockSlot)dock_slot_index; }
 

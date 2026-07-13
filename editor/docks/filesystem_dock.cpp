@@ -513,7 +513,7 @@ void FileSystemDock::_update_display_mode(bool p_force) {
 				toolbar2_hbc->show();
 
 				tree->set_scroll_hint_mode(Tree::SCROLL_HINT_MODE_TOP);
-				tree_mc->set_theme_type_variation("NoBorderHorizontalBottom");
+				tree_mc->set_theme_type_variation("NoBorderBottomPanel");
 			}
 			button_file_list_display_mode->hide();
 
@@ -4171,7 +4171,7 @@ MenuButton *FileSystemDock::_create_file_menu_button() {
 	return button;
 }
 
-void FileSystemDock::update_layout(EditorDock::DockLayout p_layout, EditorDock::DockSlot p_slot) {
+void FileSystemDock::update_layout(EditorDock::DockLayout p_layout, int p_slot) {
 	bool new_horizontal = (p_layout == EditorDock::DOCK_LAYOUT_HORIZONTAL);
 	bool new_touches_bottom = (p_slot != EditorDock::DOCK_SLOT_BOTTOM);
 	if (horizontal == new_horizontal && touches_bottom == new_touches_bottom) {
