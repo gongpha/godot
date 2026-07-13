@@ -94,14 +94,14 @@ void PhysicalBone3D::_apply_body_mode() {
 	if (freeze) {
 		switch (freeze_mode) {
 			case FREEZE_MODE_STATIC: {
-				set_body_mode(PhysicsServer3D::BODY_MODE_STATIC);
+				set_body_mode(PS3DE::BodyMode::BODY_MODE_STATIC);
 			} break;
 			case FREEZE_MODE_KINEMATIC: {
-				set_body_mode(PhysicsServer3D::BODY_MODE_KINEMATIC);
+				set_body_mode(PS3DE::BodyMode::BODY_MODE_KINEMATIC);
 			} break;
 		}
 	} else if (_internal_simulate_physics) {
-		set_body_mode(PhysicsServer3D::BODY_MODE_RIGID);
+		set_body_mode(PS3DE::BodyMode::BODY_MODE_RIGID);
 	}
 }
 
@@ -1361,7 +1361,7 @@ bool PhysicalBone3D::is_able_to_sleep() const {
 // 66 begin
 void PhysicalBone3D::set_sleeping(bool p_sleeping) {
 	sleeping = p_sleeping;
-	PhysicsServer3D::get_singleton()->body_set_state(get_rid(), PhysicsServer3D::BODY_STATE_SLEEPING, sleeping);
+	PhysicsServer3D::get_singleton()->body_set_state(get_rid(), PS3DE::BODY_STATE_SLEEPING, sleeping);
 }
 
 bool PhysicalBone3D::is_sleeping() const {
