@@ -5,5 +5,5 @@ minor = 8
 patch = 0
 status = "dev"
 module_config = ""
-website = "https://godotengine.org"
+website = "https://github.com/gongpha/godot/tree/66"
 docs = "latest"
