@@ -4365,6 +4365,27 @@ int Main::start() {
 	}
 
 	if (!script.is_empty()) {
+		// 66 begin
+		if (check_only) {
+			// (do not use at home)
+			// autoload names only become global constants in the game branch far
+			// below, which --check-only never reaches because it returns as soon as
+			// the script is loaded. Without them the compiler fails with
+			// "Identifier not found" on the first singleton reference, so any script
+			// touching an autoload is unverifiable. Placeholders suffice: the
+			// analyzer already types autoloads from ProjectSettings, it is only the
+			// compiler's name lookup that is missing soooo
+			for (const KeyValue<StringName, ProjectSettings::AutoloadInfo> &E : ProjectSettings::get_singleton()->get_autoload_list()) {
+				if (!E.value.is_singleton) {
+					continue;
+				}
+				for (int i = 0; i < ScriptServer::get_language_count(); i++) {
+					ScriptServer::get_language(i)->add_global_constant(E.value.name, Variant());
+				}
+			}
+		}
+		// 66 end
+
 		Ref<Script> script_res = ResourceLoader::load(script);
 		ERR_FAIL_COND_V_MSG(script_res.is_null(), EXIT_FAILURE, "Can't load script: " + script);
 
