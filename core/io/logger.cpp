@@ -166,6 +166,19 @@ void RotatedFileLogger::rotate_file() {
 	}
 
 	file = FileAccess::open(base_path, FileAccess::WRITE);
+	// 66 begin
+	if (file.is_null()) {
+		// the user data directory is not writable (sandboxed home, read-only mount, full disk)
+		//
+		// degrade to stdout-only logging instead of dereferencing a null ref.
+		// this ran in the constructor, so the crash landed before the engine had printed
+		// anything: an agent running the game under a managed sandbox got signal 11 (UNIX AHH THING) with no
+		// console banner, and every symptom pointed at the game rather than at the
+		// environment. FileAccess::open has already reported the open failure by this point,
+		// so staying quiet here avoids re-entering the logger stack during its own setup
+		return;
+	}
+	// 66 end
 	file->detach_from_objectdb(); // Note: This FileAccess instance will exist longer than ObjectDB, therefore can't be registered in ObjectDB.
 }
 
