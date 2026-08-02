@@ -887,10 +887,12 @@ void OS::_bind_methods() {
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode", false);
 	ADD_PROPERTY_DEFAULT("low_processor_usage_mode_sleep_usec", 6900);
 
+#ifndef DISABLE_DEPRECATED
 	BIND_ENUM_CONSTANT(RENDERING_DRIVER_VULKAN);
 	BIND_ENUM_CONSTANT(RENDERING_DRIVER_OPENGL3);
 	BIND_ENUM_CONSTANT(RENDERING_DRIVER_D3D12);
 	BIND_ENUM_CONSTANT(RENDERING_DRIVER_METAL);
+#endif // DISABLE_DEPRECATED
 
 	BIND_ENUM_CONSTANT(SYSTEM_DIR_DESKTOP);
 	BIND_ENUM_CONSTANT(SYSTEM_DIR_DCIM);
@@ -1717,7 +1719,6 @@ Variant ClassDB::class_get_property(RequiredParam<Object> rp_object, const Strin
 
 Error ClassDB::class_set_property(RequiredParam<Object> rp_object, const StringName &p_property, const Variant &p_value) const {
 	EXTRACT_PARAM_OR_FAIL_V(p_object, rp_object, ERR_INVALID_PARAMETER);
-	Variant ret;
 	bool valid;
 	if (!::ClassDB::set_property(p_object, p_property, p_value, &valid)) {
 		return ERR_UNAVAILABLE;
@@ -2196,6 +2197,10 @@ void Engine::_bind_methods() {
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "max_fps"), "set_max_fps", "get_max_fps");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "time_scale"), "set_time_scale", "get_time_scale");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "physics_jitter_fix"), "set_physics_jitter_fix", "get_physics_jitter_fix");
+
+	// Those default values need to be specified for the docs generator,
+	// to avoid using values from a `--quiet` run.
+	ADD_PROPERTY_DEFAULT("print_to_stdout", true);
 }
 
 ////// EngineDebugger //////
@@ -2376,6 +2381,35 @@ void EngineDebugger::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("insert_breakpoint", "line", "source"), &EngineDebugger::insert_breakpoint);
 	ClassDB::bind_method(D_METHOD("remove_breakpoint", "line", "source"), &EngineDebugger::remove_breakpoint);
 	ClassDB::bind_method(D_METHOD("clear_breakpoints"), &EngineDebugger::clear_breakpoints);
+}
+
+Variant WeakRef::get_ref() const {
+	if (ref.is_null()) {
+		return Variant();
+	}
+
+	Object *obj = ObjectDB::get_instance(ref);
+	if (!obj) {
+		return Variant();
+	}
+	RefCounted *r = cast_to<RefCounted>(obj);
+	if (r) {
+		return Ref<RefCounted>(r);
+	}
+
+	return obj;
+}
+
+void WeakRef::set_obj(Object *p_object) {
+	ref = p_object ? p_object->get_instance_id() : ObjectID();
+}
+
+void WeakRef::set_ref(const Ref<RefCounted> &p_ref) {
+	ref = p_ref.is_valid() ? p_ref->get_instance_id() : ObjectID();
+}
+
+void WeakRef::_bind_methods() {
+	ClassDB::bind_method(D_METHOD("get_ref"), &WeakRef::get_ref);
 }
 
 } // namespace CoreBind

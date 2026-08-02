@@ -176,12 +176,14 @@ protected:
 #endif
 
 public:
+#ifndef DISABLE_DEPRECATED
 	enum RenderingDriver {
 		RENDERING_DRIVER_VULKAN,
 		RENDERING_DRIVER_OPENGL3,
 		RENDERING_DRIVER_D3D12,
 		RENDERING_DRIVER_METAL,
 	};
+#endif // DISABLE_DEPRECATED
 
 	PackedByteArray get_entropy(int p_bytes);
 	String get_system_ca_certificates();
@@ -704,6 +706,20 @@ public:
 	~EngineDebugger();
 };
 
+class WeakRef : public RefCounted {
+	GDCLASS(WeakRef, RefCounted);
+
+	ObjectID ref;
+
+protected:
+	static void _bind_methods();
+
+public:
+	Variant get_ref() const;
+	void set_obj(Object *p_object);
+	void set_ref(const Ref<RefCounted> &p_ref);
+};
+
 } // namespace CoreBind
 
 VARIANT_ENUM_CAST(CoreBind::Logger::ErrorType);
@@ -712,7 +728,9 @@ VARIANT_ENUM_CAST(CoreBind::ResourceLoader::CacheMode);
 
 VARIANT_BITFIELD_CAST(CoreBind::ResourceSaver::SaverFlags);
 
+#ifndef DISABLE_DEPRECATED
 VARIANT_ENUM_CAST(CoreBind::OS::RenderingDriver);
+#endif
 VARIANT_ENUM_CAST(CoreBind::OS::SystemDir);
 VARIANT_ENUM_CAST(CoreBind::OS::StdHandleType);
 

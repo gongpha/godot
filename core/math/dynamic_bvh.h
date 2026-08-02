@@ -120,8 +120,14 @@ private:
 			return (Math::abs(d.x) + Math::abs(d.y) + Math::abs(d.z));
 		}
 
-		_FORCE_INLINE_ int select_by_proximity(const Volume &p_a, const Volume &p_b) const {
-			return (get_proximity_to(p_a) < get_proximity_to(p_b) ? 0 : 1);
+		_FORCE_INLINE_ int select_by_proximity(const Volume &p_a, const Volume &p_b, uint32_t &tiebreaker) const {
+			real_t prox_a = get_proximity_to(p_a);
+			real_t prox_b = get_proximity_to(p_b);
+			if (prox_a == prox_b) {
+				tiebreaker *= 1664525U;
+				return (tiebreaker % 48271U) & 1;
+			}
+			return prox_a < prox_b ? 0 : 1;
 		}
 
 		//
@@ -157,10 +163,10 @@ private:
 
 			for (int k = 0; k < 3; k++) {
 				for (int i = 0; i < p_point_count; i++) {
-					if (p_points[i].coord[k] > ofs.coord[k] + half_extents.coord[k]) {
+					if (p_points[i][k] > ofs[k] + half_extents[k]) {
 						bad_point_counts_positive[k]++;
 					}
-					if (p_points[i].coord[k] < ofs.coord[k] - half_extents.coord[k]) {
+					if (p_points[i][k] < ofs[k] - half_extents[k]) {
 						bad_point_counts_negative[k]++;
 					}
 				}
@@ -227,6 +233,7 @@ private:
 	int total_leaves = 0;
 	uint32_t opath = 0;
 	uint32_t index = 0;
+	uint32_t tiebreaker = 134775813U;
 
 	enum {
 		ALLOCA_STACK_SIZE = 128

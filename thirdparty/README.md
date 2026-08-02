@@ -8,7 +8,7 @@ readability.
 ## accesskit
 
 - Upstream: https://github.com/AccessKit/accesskit-c
-- Version: 0.21.2 (72460cd52d1b24492393cdf54a6f19d2fd63e258, 2026)
+- Version: 0.22.3 (826d672661f9453c8b269ab3946dbcbae6300555, 2026)
 - License: MIT
 
 Files extracted from upstream source:
@@ -518,6 +518,10 @@ Files extracted from upstream source:
 
 - All files in `Jolt/`, except `Jolt/Jolt.cmake`, any files dependent on `ENABLE_OBJECT_STREAM` as seen in `Jolt/Jolt.cmake` and the `Jolt/Physics/Hair/`, `Jolt/Compute/` and `Jolt/Shaders/` folders.
 - `LICENSE`
+
+Patches:
+
+- `0001-backport-upstream-commit-63f2f57.patch` (GH-121974)
 
 
 ## libbacktrace
