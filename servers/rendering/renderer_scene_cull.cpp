@@ -2190,6 +2190,24 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 
 	bool overlap = RSG::light_storage->light_directional_get_blend_splits(p_instance->base);
 
+	// 66 begin
+	// use the camera's real frustum instead of rebuilding a symmetric one from
+	// fov/aspect. the old approach broke off-center frustums (e.g. mirrors,
+	// lens-shift cameras), since it always assumed the view axis is centered.
+
+	Vector3 full_endpoints[8]; // frustum plane endpoints of the whole camera frustum
+	bool res = p_cam_projection.get_endpoints(p_cam_transform, full_endpoints);
+	ERR_FAIL_COND(!res);
+
+	Vector<Plane> full_receiver_planes = p_cam_projection.get_projection_planes(p_cam_transform);
+
+	const real_t cam_z_near = p_cam_projection.get_z_near();
+	const real_t cam_z_far = p_cam_projection.get_z_far();
+	const real_t cam_depth_range = MAX(cam_z_far - cam_z_near, (real_t)CMP_EPSILON);
+	// Cameras look along -Z.
+	const Vector3 cam_fwd = -p_cam_transform.basis.get_column(2).normalized();
+	// 66 end
+
 	cull.shadow_count = p_shadow_index + 1;
 	cull.shadows[p_shadow_index].cascade_count = splits;
 	cull.shadows[p_shadow_index].light_instance = light->instance;
@@ -2198,26 +2216,44 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 	for (int i = 0; i < splits; i++) {
 		RENDER_TIMESTAMP("Cull DirectionalLight3D, Split " + itos(i));
 
-		// setup a camera matrix for that range!
-		Projection camera_matrix;
+		// 66 begin
+		const real_t split_near = distances[(i == 0 || !overlap) ? i : i - 1];
+		const real_t split_far = distances[i + 1];
 
-		real_t aspect = p_cam_projection.get_aspect();
+		// get this split's corners by sliding each full-frustum edge (near
+		// corner to matching far corner) to the split's near/far depth. this
+		// works the same way for perspective and orthogonal frustums.
 
-		if (p_cam_orthogonal) {
-			Vector2 vp_he = p_cam_projection.get_viewport_half_extents();
+		Vector3 endpoints[8]; // frustum plane endpoints
 
-			camera_matrix.set_orthogonal(vp_he.y * 2.0, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], false);
-		} else {
-			real_t fov = p_cam_projection.get_fov(); //this is actually yfov, because set aspect tries to keep it
-			camera_matrix.set_perspective(fov, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], true);
+		{
+			const real_t t_near = CLAMP((split_near - cam_z_near) / cam_depth_range, (real_t)0.0, (real_t)1.0);
+			const real_t t_far = CLAMP((split_far - cam_z_near) / cam_depth_range, (real_t)0.0, (real_t)1.0);
+
+			for (int j = 0; j < 4; j++) {
+				const Vector3 &f = full_endpoints[j]; // far corner
+				const Vector3 &n = full_endpoints[j + 4]; // near corner
+				endpoints[j] = n.lerp(f, t_far); // this split's far corners
+				endpoints[j + 4] = n.lerp(f, t_near); // this split's near corners
+			}
 		}
 
-		Vector<Plane> receiver_frustum_planes = camera_matrix.get_projection_planes(p_cam_transform);
+		// get this split's planes for the light culler. only near/far change
+		// between splits, so start from the full frustum's planes and push
+		// near/far along the camera's forward vector to the split depths.
 
-		//obtain the frustum endpoints
-		Vector3 endpoints[8]; // frustum plane endpoints
-		bool res = camera_matrix.get_endpoints(p_cam_transform, endpoints);
-		ERR_CONTINUE(!res);
+		Vector<Plane> receiver_frustum_planes = full_receiver_planes;
+
+		{
+			Plane near_plane = receiver_frustum_planes[Projection::PLANE_NEAR];
+			near_plane.d += near_plane.normal.dot(cam_fwd) * (split_near - cam_z_near);
+			receiver_frustum_planes.write[Projection::PLANE_NEAR] = near_plane;
+
+			Plane far_plane = receiver_frustum_planes[Projection::PLANE_FAR];
+			far_plane.d += far_plane.normal.dot(cam_fwd) * (split_far - cam_z_far);
+			receiver_frustum_planes.write[Projection::PLANE_FAR] = far_plane;
+		}
+		// 66 end
 
 		light_culler->prepare_directional_light_cascade(p_shadow_index, i, receiver_frustum_planes, endpoints);
 
