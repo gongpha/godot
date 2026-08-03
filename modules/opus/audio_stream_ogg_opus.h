@@ -31,7 +31,7 @@
 #pragma once
 
 #include "core/variant/variant.h"
-#include "servers/audio/audio_stream.h"
+#include "scene/resources/audio/audio_stream.h"
 
 #include <opusfile.h>
 
