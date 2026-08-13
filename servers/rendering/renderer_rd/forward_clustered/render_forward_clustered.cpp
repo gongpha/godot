@@ -1499,6 +1499,7 @@ void RenderForwardClustered::_process_ssr(Ref<RenderSceneBuffersRD> p_render_buf
 		correction.set_depth_correction(true);
 
 		Projection projection = correction * p_projections[v];
+
 		reprojections[v] = rb_data->ss_effects_data.ssr_last_frame_projections[v] * Projection(rb_data->ss_effects_data.ssr_last_frame_transform.affine_inverse()) * Projection(p_transform) * projection.inverse();
 
 		rb_data->ss_effects_data.ssr_last_frame_projections[v] = projection;
@@ -3352,8 +3353,7 @@ void RenderForwardClustered::_update_render_base_uniform_set() {
 		{
 			RD::Uniform u;
 			u.binding = 18;
-			u.uniform_type = RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE;
-			u.append_id(RendererRD::MaterialStorage::get_singleton()->sampler_rd_get_default(RSE::CANVAS_ITEM_TEXTURE_FILTER_LINEAR, RSE::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED));
+			u.uniform_type = RD::UNIFORM_TYPE_TEXTURE;
 			u.append_id(RendererRD::TextureStorage::get_singleton()->texture_get_rd_texture(ltc.lut1_texture));
 			uniforms.push_back(u);
 		}
@@ -3361,11 +3361,11 @@ void RenderForwardClustered::_update_render_base_uniform_set() {
 		{
 			RD::Uniform u;
 			u.binding = 19;
-			u.uniform_type = RD::UNIFORM_TYPE_SAMPLER_WITH_TEXTURE;
-			u.append_id(RendererRD::MaterialStorage::get_singleton()->sampler_rd_get_default(RSE::CANVAS_ITEM_TEXTURE_FILTER_LINEAR, RSE::CANVAS_ITEM_TEXTURE_REPEAT_DISABLED));
+			u.uniform_type = RD::UNIFORM_TYPE_TEXTURE;
 			u.append_id(RendererRD::TextureStorage::get_singleton()->texture_get_rd_texture(ltc.lut2_texture));
 			uniforms.push_back(u);
 		}
+
 		{
 			RD::Uniform u;
 			u.binding = 20;

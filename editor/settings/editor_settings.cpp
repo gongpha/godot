@@ -2054,37 +2054,7 @@ float EditorSettings::get_auto_display_scale() {
 	}
 #endif
 
-#if defined(MACOS_ENABLED) || defined(ANDROID_ENABLED)
 	return DisplayServer::get_singleton()->screen_get_max_scale();
-#else
-	const int screen = DisplayServer::get_singleton()->window_get_current_screen();
-
-	if (DisplayServer::get_singleton()->screen_get_size(screen) == Vector2i()) {
-		// Invalid screen size, skip.
-		return 1.0;
-	}
-
-#if defined(WINDOWS_ENABLED)
-	return DisplayServer::get_singleton()->screen_get_dpi(screen) / 96.0;
-#else
-	// Use the smallest dimension to use a correct display scale on portrait displays.
-	const int smallest_dimension = MIN(DisplayServer::get_singleton()->screen_get_size(screen).x, DisplayServer::get_singleton()->screen_get_size(screen).y);
-	if (DisplayServer::get_singleton()->screen_get_dpi(screen) >= 192 && smallest_dimension >= 1400) {
-		// hiDPI display.
-		return 2.0;
-	} else if (smallest_dimension >= 1700) {
-		// Likely a hiDPI display, but we aren't certain due to the returned DPI.
-		// Use an intermediate scale to handle this situation.
-		return 1.5;
-	} else if (smallest_dimension <= 800) {
-		// Small loDPI display. Use a smaller display scale so that editor elements fit more easily.
-		// Icons won't look great, but this is better than having editor elements overflow from its window.
-		return 0.75;
-	}
-	return 1.0;
-#endif // defined(WINDOWS_ENABLED)
-
-#endif // defined(MACOS_ENABLED) || defined(ANDROID_ENABLED)
 }
 
 String EditorSettings::get_language() const {

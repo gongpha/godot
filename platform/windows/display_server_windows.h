@@ -569,6 +569,10 @@ class DisplayServerWindows : public DisplayServer {
 	void _update_hdr_output_for_window(DisplayServerEnums::WindowID p_window, const WindowData &p_window_data, ScreenHdrData p_screen_data);
 	void _legacy_update_hdr_output_for_tracked_windows(bool p_include_sdr_white_level);
 
+	String _get_app_id() const;
+	String _get_app_name() const;
+	bool _try_create_shortcut();
+
 public:
 	LRESULT WndProcFileDialog(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
 	LRESULT WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
@@ -624,6 +628,7 @@ public:
 	virtual Size2i screen_get_size(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
 	virtual Rect2i screen_get_usable_rect(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
 	virtual int screen_get_dpi(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
+	virtual float screen_get_scale(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
 	virtual float screen_get_refresh_rate(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
 	virtual Color screen_get_pixel(const Point2i &p_position) const override;
 	virtual Ref<Image> screen_get_image(int p_screen = DisplayServerEnums::SCREEN_OF_MAIN_WINDOW) const override;
@@ -740,6 +745,9 @@ public:
 	virtual void cursor_set_shape(DisplayServerEnums::CursorShape p_shape) override;
 	virtual DisplayServerEnums::CursorShape cursor_get_shape() const override;
 	virtual void cursor_set_custom_image(const Ref<Resource> &p_cursor, DisplayServerEnums::CursorShape p_shape = DisplayServerEnums::CURSOR_ARROW, const Vector2 &p_hotspot = Vector2()) override;
+
+	virtual DisplayServerEnums::NotificationID send_toast_notification(const String &p_title, const String &p_text, const Ref<Texture2D> &p_image, const Callable &p_callback) override;
+	virtual void hide_toast_notification(DisplayServerEnums::NotificationID p_id) override;
 
 	virtual bool get_swap_cancel_ok() override;
 

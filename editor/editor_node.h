@@ -43,6 +43,7 @@ typedef void (*EditorPluginInitializeCallback)();
 typedef bool (*EditorBuildCallback)();
 
 class AcceptDialog;
+class BoxContainer;
 class ColorPicker;
 class ConfirmationDialog;
 class Control;
@@ -179,6 +180,7 @@ public:
 		TOOLS_ORPHAN_RESOURCES,
 		TOOLS_BUILD_PROFILE_MANAGER,
 		TOOLS_PROJECT_UPGRADE,
+		TOOLS_CLEAR_PROJECT_CACHE,
 		TOOLS_CUSTOM,
 
 		VCS_METADATA,
@@ -293,8 +295,8 @@ private:
 	OptionButton *renderer = nullptr;
 
 #ifdef ANDROID_ENABLED
-	VBoxContainer *base_vbox = nullptr; // It only contains the title_bar and main_hbox.
-	HBoxContainer *main_hbox = nullptr; // It only contains the touch_actions_panel and main_vbox.
+	VBoxContainer *base_vbox = nullptr; // It only contains the title_bar and main_box.
+	BoxContainer *main_box = nullptr; // It only contains the touch_actions_panel and main_vbox.
 	TouchActionsPanel *touch_actions_panel = nullptr;
 	void _touch_actions_panel_mode_changed();
 #endif
@@ -489,6 +491,9 @@ private:
 
 	ProjectUpgradeTool *project_upgrade_tool = nullptr;
 	bool run_project_upgrade_tool = false;
+	ConfirmationDialog *clear_cache_dialog = nullptr;
+
+	LocalVector<String> files_to_delete_on_exit;
 
 	bool was_window_windowed_last = false;
 
@@ -558,6 +563,7 @@ private:
 	void _export_as_menu_option(int p_idx);
 	void _update_file_menu_opened();
 	void _palette_quick_open_dialog();
+	void _clear_cache_confirmed();
 
 	void _remove_plugin_from_enabled(const String &p_name);
 	void _plugin_over_edit(EditorPlugin *p_plugin, Object *p_object, bool p_set_current = true);
