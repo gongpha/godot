@@ -169,6 +169,7 @@ public:
 		// Project menu.
 		PROJECT_OPEN_SETTINGS,
 		PROJECT_FIND_IN_FILES,
+		PROJECT_REPLACE_IN_FILES,
 		PROJECT_VERSION_CONTROL,
 		PROJECT_EXPORT,
 		PROJECT_PACK_AS_ZIP,
@@ -551,6 +552,7 @@ private:
 	void _android_export_preset_selected(int p_index);
 	void _android_install_build_template();
 	void _android_explore_build_templates();
+	void _android_remove_build_templates(bool p_prompt_for_removal);
 
 	void _request_screenshot();
 	void _screenshot(bool p_use_utc = false);
@@ -1044,6 +1046,8 @@ public:
 	void redo();
 
 	int execute_and_show_output(const String &p_title, const String &p_path, const List<String> &p_arguments, bool p_close_on_ok = true, bool p_close_on_errors = false, String *r_output = nullptr);
+
+	Error setup_android_build_template(const Ref<EditorExportPreset> &p_preset, bool p_confirmed);
 
 	EditorNode();
 	~EditorNode();

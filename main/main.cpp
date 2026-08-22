@@ -214,8 +214,8 @@ static String locale;
 static String log_file;
 static bool show_help = false;
 static uint64_t quit_after = 0;
-static ProcessID editor_pid = 0;
 #ifdef TOOLS_ENABLED
+static ProcessID editor_pid = 0;
 static bool found_project = false;
 static bool recovery_mode = false;
 static bool auto_build_solutions = false;
@@ -261,8 +261,8 @@ static bool force_res = false;
 
 // Debug
 
-static bool use_debug_profiler = false;
 #ifdef DEBUG_ENABLED
+static bool use_debug_profiler = false;
 static bool debug_collisions = false;
 static bool debug_paths = false;
 static bool debug_navigation = false;
@@ -587,12 +587,12 @@ void Main::print_help(const char *p_binary) {
 	print_help_option("--accessibility-driver <driver>", "Select accessibility driver ['accesskit', 'dummy'].\n");
 
 	print_help_title("Debug options");
-#if defined(DEBUG_ENABLED) || defined(TOOLS_ENABLED)
+#ifdef DEBUG_ENABLED
 	print_help_option("-d, --debug", "Debug (local stdout debugger).\n");
 	print_help_option("-b, --breakpoints", "Breakpoint list as source:line comma-separated pairs, no spaces (use %%20 instead).\n");
 	print_help_option("--ignore-error-breaks", "If debugger is connected, prevents sending error breakpoints.\n");
-#endif
 	print_help_option("--profiling", "Enable profiling in the script debugger.\n");
+#endif
 	print_help_option("--gpu-profile", "Show a GPU profile of the tasks that took the most time during frame rendering.\n");
 	print_help_option("--gpu-validation", "Enable graphics API validation layers for debugging.\n");
 #ifdef DEBUG_ENABLED
@@ -1461,9 +1461,13 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				goto error;
 			}
 		} else if (arg == "--profiling") { // enable profiling
-
+#ifdef DEBUG_ENABLED
 			use_debug_profiler = true;
-
+#else
+			ERR_PRINT(
+					"`--profiling` was specified on the command line, but this Godot binary was compiled without debug. Aborting.\n"
+					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
+#endif
 		} else if (arg == "-l" || arg == "--language") { // language
 
 			if (N) {
@@ -1885,6 +1889,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 					"To be able to use it, use the `target=template_debug` SCons option when compiling Godot.\n");
 			goto error;
 #endif // defined(DEBUG_ENABLED) || defined (TOOLS_ENABLED)
+#ifdef TOOLS_ENABLED
 		} else if (arg == "--editor-pid") { // not exposed to user
 			if (N) {
 				editor_pid = N->get().to_int();
@@ -1893,6 +1898,7 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 				OS::get_singleton()->print("Missing editor PID argument, aborting.\n");
 				goto error;
 			}
+#endif // TOOLS_ENABLED
 		} else if (arg == "--disable-render-loop") {
 			disable_render_loop = true;
 		} else if (arg == "--fixed-fps") {
@@ -2253,9 +2259,11 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 
 #if defined(DEBUG_ENABLED) || defined(TOOLS_ENABLED)
 	EngineDebugger::initialize(debug_uri, skip_breakpoints, ignore_error_breaks, breakpoints, []() {
+#ifdef TOOLS_ENABLED
 		if (editor_pid) {
 			DisplayServer::get_singleton()->enable_for_stealing_focus(editor_pid);
 		}
+#endif
 	});
 #endif
 
@@ -2887,6 +2895,10 @@ Error Main::setup(const char *execpath, int argc, char *argv[], bool p_second_ph
 	// OpenXR Binding modifier settings
 	GLOBAL_DEF_BASIC("xr/openxr/binding_modifiers/analog_threshold", false);
 	GLOBAL_DEF_RST_BASIC("xr/openxr/binding_modifiers/dpad_binding", false);
+
+	// visionOS settings
+	GLOBAL_DEF_BASIC("xr/visionos/enable_hand_tracking", false);
+	GLOBAL_DEF_BASIC("xr/visionos/enable_controller_tracking", false);
 
 #ifdef TOOLS_ENABLED
 	// Disabled for now, using XR inside of the editor we'll be working on during the coming months.
@@ -3836,11 +3848,13 @@ Error Main::setup2(bool p_show_boot_logo) {
 	BindingsGenerator::handle_cmdline_args(cmdline_args);
 #endif
 
+#ifdef DEBUG_ENABLED
 	if (use_debug_profiler && EngineDebugger::is_active()) {
 		// Start the "scripts" profiler, used in local debugging.
 		// We could add more, and make the CLI arg require a comma-separated list of profilers.
 		EngineDebugger::get_singleton()->profiler_enable("scripts", true);
 	}
+#endif
 
 	if (!project_manager) {
 		// If not running the project manager, and now that the engine is
