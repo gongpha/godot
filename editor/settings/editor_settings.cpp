@@ -474,8 +474,10 @@ void EditorSettings::_load_defaults(Ref<ConfigFile> p_extra_config) {
 
 	// Editor
 	EDITOR_SETTING(Variant::BOOL, PROPERTY_HINT_NONE, "interface/editor/localization/localize_settings", true, "")
-	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/docks/dock_tab_style", 0, "Text Only,Icon Only,Text and Icon")
-	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/docks/bottom_dock_tab_style", 0, "Text Only,Icon Only,Text and Icon")
+	const String dock_tab_style_hint = "Text Only,Icon Only,Text and Icon";
+	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/docks/dock_tab_style", 0, dock_tab_style_hint)
+	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/docks/bottom_dock_tab_style", 0, dock_tab_style_hint)
+	EDITOR_SETTING_BASIC(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/docks/main_screen_dock_tab_style", 2, dock_tab_style_hint)
 	EDITOR_SETTING_USAGE(Variant::INT, PROPERTY_HINT_ENUM, "interface/editor/localization/ui_layout_direction", 0, "Based on Application Locale,Left-to-Right,Right-to-Left,Based on System Locale", PROPERTY_USAGE_DEFAULT | PROPERTY_USAGE_RESTART_IF_CHANGED)
 
 	// Display what the Auto display scale setting effectively corresponds to.
@@ -1517,6 +1519,11 @@ void EditorSettings::setup_language(bool p_initial_setup) {
 
 	if (lang == "en") {
 		TranslationServer::get_singleton()->set_locale(lang);
+
+		TranslationServer::get_singleton()->get_editor_domain()->clear();
+		TranslationServer::get_singleton()->get_property_domain()->clear();
+		TranslationServer::get_singleton()->get_doc_domain()->clear();
+
 		emit_signal("_translation_changed");
 		return; // Default, nothing to do.
 	}
@@ -1569,9 +1576,14 @@ void EditorSettings::save() {
 	if (!singleton.ptr()) {
 		return;
 	}
+	// Only save if a setting has been changed or
+	// the setting file for this version does not exist yet.
+	// Fixes issues when multiple editor instances are open.
+	if (singleton->changed_settings.is_empty() && FileAccess::exists(singleton->get_path())) {
+		return;
+	}
 
 	Error err = ResourceSaver::save(singleton);
-
 	if (err != OK) {
 		ERR_PRINT("Error saving editor settings to " + singleton->get_path());
 	} else {

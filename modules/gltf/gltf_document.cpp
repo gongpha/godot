@@ -4240,8 +4240,10 @@ void GLTFDocument::_convert_scene_node(Ref<GLTFState> p_state, Node *p_current, 
 #endif // TOOLS_ENABLED
 	Ref<GLTFNode> gltf_node;
 	gltf_node.instantiate();
-	if (p_current->has_method("is_visible")) {
-		bool visible = p_current->call("is_visible");
+
+	Callable::CallError err;
+	bool visible = p_current->callp(SceneStringName(is_visible), nullptr, 0, err);
+	if (err.error == Callable::CallError::CALL_OK) {
 		if (!visible && _visibility_mode == VISIBILITY_MODE_EXCLUDE) {
 			return;
 		}
@@ -6011,6 +6013,8 @@ void GLTFDocument::_convert_mesh_instances(Ref<GLTFState> p_state) {
 					if (bind_name == StringName()) {
 						bind_name = godot_skeleton->get_bone_name(bone_i);
 					}
+					Vector3 skin_scale = godot_skeleton->get_bone_skin_scale(bone_i);
+					bind_pose = bind_pose.scaled(skin_scale);
 					GLTFNodeIndex skeleton_bone_i = gltf_skeleton->joints[bone_i];
 					gltf_skin->joints_original.push_back(skeleton_bone_i);
 					gltf_skin->joints.push_back(skeleton_bone_i);
