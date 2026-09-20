@@ -239,6 +239,11 @@ opts.Add(
         True,
     )
 )
+opts.Add((
+    "profiler_broadcast_address",
+    "The broadcast IP address used for announcing the profiler application. In Tracy this configures TRACY_CLIENT_ADDRESS.",
+    "",
+))
 
 
 # Advanced options

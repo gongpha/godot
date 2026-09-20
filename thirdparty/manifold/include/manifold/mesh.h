@@ -15,6 +15,7 @@
 #pragma once
 
 #include <cstdint>
+#include <istream>
 #include <type_traits>
 #include <vector>
 
