@@ -58,15 +58,32 @@ private:
 		}
 	};
 
+	// 66 begin
+	// SIMPLIFY_PATH involving nodes that do not yet exist
+	// (channel 100 can overtake the channel 0 RPC responsible for creating said nodes)
+	struct PendingPath {
+		NodePath path;
+		String methods_md5;
+		uint64_t received_usec = 0;
+	};
+	// 66 end
+
 	struct PeerInfo {
 		HashMap<int, RecvNode> recv_nodes; // remote cache id, (ObjectID, NodePath)
 		HashSet<ObjectID> sent_nodes;
+		HashMap<int, PendingPath> pending_paths; // 66: remote cache id, pending path
 	};
 
 	HashMap<ObjectID, NodeCache> nodes_cache;
 	HashMap<int, ObjectID> assigned_ids;
 	HashMap<int, PeerInfo> peers_info;
 	int last_send_cache_id = 1;
+	// 66 begin
+	static constexpr uint64_t PENDING_PATH_TIMEOUT_USEC = 10000000;
+	int pending_path_count = 0; // Sum of all pending_paths, so an idle poll costs nothing.
+
+	void _finish_simplify_path(int p_from, int p_id, const NodePath &p_path, const String &p_methods_md5, Node *p_node);
+	// 66 end
 
 	void _remove_node_cache(ObjectID p_oid);
 	NodeCache &_track(Node *p_node);
@@ -78,6 +95,7 @@ public:
 	void clear();
 	void on_peer_change(int p_id, bool p_connected);
 	void process_simplify_path(int p_from, const uint8_t *p_packet, int p_packet_len);
+	void process_pending_paths(); // 66
 	void process_confirm_path(int p_from, const uint8_t *p_packet, int p_packet_len);
 
 	// Returns true if all peers have cached path.

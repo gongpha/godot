@@ -34,6 +34,7 @@
 
 #include "core/io/marshalls.h"
 #include "core/object/callable_mp.h"
+#include "core/os/os.h" // 66
 #include "scene/main/node.h"
 #include "scene/main/scene_tree.h"
 #include "scene/main/window.h"
@@ -91,6 +92,7 @@ void SceneCacheInterface::on_peer_change(int p_id, bool p_connected) {
 			ERR_CONTINUE(!nc);
 			nc->confirmed_peers.erase(p_id);
 		}
+		pending_path_count -= pinfo->pending_paths.size(); // 66
 		peers_info.erase(p_id);
 	}
 }
@@ -114,9 +116,29 @@ void SceneCacheInterface::process_simplify_path(int p_from, const uint8_t *p_pac
 
 	const NodePath path = paths;
 
-	Node *node = root_node->get_node(path);
-	ERR_FAIL_NULL(node);
-	const bool valid_rpc_checksum = multiplayer->get_rpc_md5(node) == methods_md5;
+	// 66 begin
+	ERR_FAIL_COND_MSG(peers_info[p_from].pending_paths.has(id), vformat("Duplicate remote cache ID %d for peer %d", id, p_from));
+
+	Node *node = root_node->get_node_or_null(path);
+	if (!node) {
+		// a node might have been created via RPC on another channel that has not yet been processed
+		// try again during each polling cycle
+		PendingPath pending;
+		pending.path = path;
+		pending.methods_md5 = methods_md5;
+		pending.received_usec = OS::get_singleton()->get_ticks_usec();
+		peers_info[p_from].pending_paths.insert(id, pending);
+		pending_path_count++;
+		return;
+	}
+	_finish_simplify_path(p_from, id, path, methods_md5, node);
+}
+
+void SceneCacheInterface::_finish_simplify_path(int p_from, int p_id, const NodePath &p_path, const String &p_methods_md5, Node *p_node) {
+	const int id = p_id;
+	const NodePath &path = p_path;
+	Node *node = p_node;
+	const bool valid_rpc_checksum = multiplayer->get_rpc_md5(node) == p_methods_md5;
 	if (valid_rpc_checksum == false) {
 		ERR_PRINT("The rpc node checksum failed. Make sure to have the same methods on both nodes. Node path: " + String(path));
 	}
@@ -135,10 +157,41 @@ void SceneCacheInterface::process_simplify_path(int p_from, const uint8_t *p_pac
 	Ref<MultiplayerPeer> multiplayer_peer = multiplayer->get_multiplayer_peer();
 	ERR_FAIL_COND(multiplayer_peer.is_null());
 
-	multiplayer_peer->set_transfer_channel(100); // 66
+	multiplayer_peer->set_transfer_channel(100);
 	multiplayer_peer->set_transfer_mode(MultiplayerPeer::TRANSFER_MODE_RELIABLE);
 	multiplayer->send_command(p_from, packet.ptr(), packet.size());
 }
+
+void SceneCacheInterface::process_pending_paths() {
+	if (pending_path_count == 0) {
+		return;
+	}
+	Node *root_node = SceneTree::get_singleton()->get_root()->get_node_or_null(multiplayer->get_root_path());
+	const uint64_t now = OS::get_singleton()->get_ticks_usec();
+	// retry first, then expire
+	// so a late-but-processed RPC in this poll resolves instead of expiring
+	for (KeyValue<int, PeerInfo> &P : peers_info) {
+		if (P.value.pending_paths.is_empty()) {
+			continue;
+		}
+		List<int> done;
+		for (const KeyValue<int, PendingPath> &E : P.value.pending_paths) {
+			Node *node = root_node ? root_node->get_node_or_null(E.value.path) : nullptr;
+			if (node) {
+				_finish_simplify_path(P.key, E.key, E.value.path, E.value.methods_md5, node);
+				done.push_back(E.key);
+			} else if (now - E.value.received_usec >= PENDING_PATH_TIMEOUT_USEC) {
+				WARN_PRINT(vformat("Path cache ID %d from peer %d expired after %d s, node not found: %s", E.key, P.key, (int)(PENDING_PATH_TIMEOUT_USEC / 1000000), String(E.value.path)));
+				done.push_back(E.key);
+			}
+		}
+		for (const int &id : done) {
+			P.value.pending_paths.erase(id);
+			pending_path_count--;
+		}
+	}
+}
+// 66 end
 
 void SceneCacheInterface::process_confirm_path(int p_from, const uint8_t *p_packet, int p_packet_len) {
 	ERR_FAIL_COND_MSG(p_packet_len != 6, "Invalid packet received. Size too small.");
@@ -301,6 +354,7 @@ void SceneCacheInterface::clear() {
 		obj->disconnect(SceneStringName(tree_exited), callable_mp(this, &SceneCacheInterface::_remove_node_cache));
 	}
 	peers_info.clear();
+	pending_path_count = 0; // 66
 	nodes_cache.clear();
 	assigned_ids.clear();
 	last_send_cache_id = 1;

@@ -162,6 +162,7 @@ Error SceneMultiplayer::poll() {
 		return OK;
 	}
 
+	cache->process_pending_paths(); // 66
 	replicator->on_network_process();
 	return OK;
 }
