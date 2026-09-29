@@ -790,10 +790,18 @@ Error SceneReplicationInterface::on_delta_receive(int p_from, const uint8_t *p_b
 		ERR_FAIL_COND_V(size > uint32_t(p_buffer_len - ofs), ERR_INVALID_DATA);
 		MultiplayerSynchronizer *sync = _find_synchronizer(p_from, net_id);
 		Node *node = sync ? sync->get_root_node() : nullptr;
-		if (!sync || sync->get_multiplayer_authority() != p_from || !node) {
+		if (!sync || !node) { // 66
 			ofs += size;
 			ERR_CONTINUE_MSG(true, "Ignoring delta for non-authority or invalid synchronizer.");
 		}
+		// 66 begin
+		if (sync->get_multiplayer_authority() != p_from) {
+			// it was an actual in-flight competition that took place after control had been handed over; it was not an error !!!
+			ofs += size;
+			print_verbose(vformat("Ignoring delta from peer %d (net id %d): not the synchronizer's authority.", p_from, net_id));
+			continue;
+		}
+		// 66 end
 		List<NodePath> props = sync->get_delta_properties(indexes);
 		ERR_FAIL_COND_V(props.is_empty(), ERR_INVALID_DATA);
 		Vector<Variant> vars;
