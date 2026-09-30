@@ -601,7 +601,7 @@ void AudioServer::set_bus_count(int p_count) {
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 	int cb = buses.size();
 
 	if (p_count < buses.size()) {
@@ -650,7 +650,7 @@ void AudioServer::set_bus_count(int p_count) {
 		bus_map[attempt] = buses[i];
 	}
 
-	unlock();
+	unlock(); // 66
 
 	AudioDriver::get_singleton()->set_sample_bus_count(p_count);
 
@@ -663,11 +663,11 @@ void AudioServer::remove_bus(int p_index) {
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 	bus_map.erase(buses[p_index]->name);
 	memdelete(buses[p_index]);
 	buses.remove_at(p_index);
-	unlock();
+	unlock(); // 66
 
 	AudioDriver::get_singleton()->remove_sample_bus(p_index);
 
@@ -717,6 +717,7 @@ void AudioServer::add_bus(int p_at_pos) {
 	bus->bypass = false;
 	bus->volume_db = 0;
 
+	lock(); // 66
 	bus_map[attempt] = bus;
 
 	if (p_at_pos == -1) {
@@ -724,6 +725,7 @@ void AudioServer::add_bus(int p_at_pos) {
 	} else {
 		buses.insert(p_at_pos, bus);
 	}
+	unlock(); // 66
 
 	AudioDriver::get_singleton()->add_sample_bus(p_at_pos);
 
@@ -741,6 +743,7 @@ void AudioServer::move_bus(int p_bus, int p_to_pos) {
 	}
 
 	Bus *bus = buses[p_bus];
+	lock(); // 66
 	buses.remove_at(p_bus);
 
 	if (p_to_pos == -1) {
@@ -750,6 +753,7 @@ void AudioServer::move_bus(int p_bus, int p_to_pos) {
 	} else {
 		buses.insert(p_to_pos - 1, bus);
 	}
+	unlock(); // 66
 
 	AudioDriver::get_singleton()->move_sample_bus(p_bus, p_to_pos);
 
@@ -768,7 +772,7 @@ void AudioServer::set_bus_name(int p_bus, const String &p_name) {
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 
 	StringName old_name = buses[p_bus]->name;
 
@@ -799,7 +803,7 @@ void AudioServer::set_bus_name(int p_bus, const String &p_name) {
 	bus_map.erase(old_name);
 	buses[p_bus]->name = attempt;
 	bus_map[attempt] = buses[p_bus];
-	unlock();
+	unlock(); // 66
 
 	emit_signal(SNAME("bus_renamed"), p_bus, old_name, attempt);
 }
@@ -851,7 +855,9 @@ void AudioServer::set_bus_send(int p_bus, const StringName &p_send) {
 
 	MARK_EDITED
 
+	lock(); // 66
 	buses[p_bus]->send = p_send;
+	unlock(); // 66
 
 	AudioDriver::get_singleton()->set_sample_bus_send(p_bus, p_send);
 }
@@ -926,7 +932,7 @@ void AudioServer::add_bus_effect(int p_bus, const Ref<AudioEffect> &p_effect, in
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 
 	Bus::Effect fx;
 	fx.effect = p_effect;
@@ -944,7 +950,7 @@ void AudioServer::add_bus_effect(int p_bus, const Ref<AudioEffect> &p_effect, in
 
 	_update_bus_effects(p_bus);
 
-	unlock();
+	unlock(); // 66
 }
 
 void AudioServer::remove_bus_effect(int p_bus, int p_effect) {
@@ -952,12 +958,12 @@ void AudioServer::remove_bus_effect(int p_bus, int p_effect) {
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 
 	buses[p_bus]->effects.remove_at(p_effect);
 	_update_bus_effects(p_bus);
 
-	unlock();
+	unlock(); // 66
 }
 
 int AudioServer::get_bus_effect_count(int p_bus) {
@@ -988,10 +994,10 @@ void AudioServer::swap_bus_effects(int p_bus, int p_effect, int p_by_effect) {
 
 	MARK_EDITED
 
-	lock();
+	lock(); // 66
 	SWAP(buses.write[p_bus]->effects.write[p_effect], buses.write[p_bus]->effects.write[p_by_effect]);
 	_update_bus_effects(p_bus);
-	unlock();
+	unlock(); // 66
 }
 
 void AudioServer::set_bus_effect_enabled(int p_bus, int p_effect, bool p_enabled) {
