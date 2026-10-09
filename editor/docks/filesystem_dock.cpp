@@ -4384,6 +4384,8 @@ void FileSystemDock::load_layout_from_config(const Ref<ConfigFile> &p_layout, co
 			uncollapsed_tis = { "res://" };
 		}
 
+		favorites_item->set_collapsed(!uncollapsed_tis.has("Favorites"));
+
 		TreeItem *item = tree->get_item_with_metadata("res://", 0);
 		item->set_collapsed_recursive(true);
 		LocalVector<TreeItem *> ti_visit;
@@ -4852,6 +4854,14 @@ FileSystemDock::FileSystemDock() {
 	display_mode = DISPLAY_MODE_TREE_ONLY;
 	old_display_mode = DISPLAY_MODE_TREE_ONLY;
 	file_list_display_mode = FILE_LIST_DISPLAY_THUMBNAILS;
+
+	List<PropertyInfo> property_list;
+	ProjectSettings::get_singleton()->get_property_list(&property_list);
+	for (const PropertyInfo &pi : property_list) {
+		if (pi.type == Variant::STRING && pi.hint == PROPERTY_HINT_FILE) {
+			path_project_settings.push_back(pi.name);
+		}
+	}
 
 	ProjectSettings::get_singleton()->connect("settings_changed", callable_mp(this, &FileSystemDock::_project_settings_changed));
 	EditorSettings::get_singleton()->connect("_favorites_changed", callable_mp(this, &FileSystemDock::update_all));
