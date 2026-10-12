@@ -32,6 +32,7 @@
 
 #include "../nav_utils_3d.h"
 #include "nav_base_iteration_3d.h"
+#include "nav_polygon_bvh_3d.h" // 66
 
 #include "core/math/aabb.h"
 
@@ -77,14 +78,17 @@ public:
 	real_t surface_area = 0.0;
 	AABB bounds;
 	LocalVector<Nav3D::ConnectableEdge> external_edges;
+	NavPolygonBVH3D polygon_bvh; // 66
 
 	const Transform3D &get_transform() const { return transform; }
 	real_t get_surface_area() const { return surface_area; }
 	AABB get_bounds() const { return bounds; }
 	const LocalVector<Nav3D::ConnectableEdge> &get_external_edges() const { return external_edges; }
+	const NavPolygonBVH3D &get_polygon_bvh() const { return polygon_bvh; } // 66
 
 	virtual ~NavRegionIteration3D() override {
 		external_edges.clear();
+		polygon_bvh.clear(); // 66
 		navmesh_polygons.clear();
 		internal_connections.clear();
 	}

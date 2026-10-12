@@ -42,6 +42,7 @@ using namespace NavigationDefaults3D;
 using namespace NavigationEnums3D;
 
 class NavMap3D;
+class NavRegionIteration3D; // 66
 struct NavMapIteration3D;
 
 class NavMeshQueries3D {
@@ -131,6 +132,8 @@ public:
 	static Vector3 polygons_get_closest_point_normal(const LocalVector<Nav3D::Polygon> &p_polygons, const Vector3 &p_point);
 	static Nav3D::ClosestPointQueryResult polygons_get_closest_point_info(const LocalVector<Nav3D::Polygon> &p_polygons, const Vector3 &p_point);
 	static RID polygons_get_closest_point_owner(const LocalVector<Nav3D::Polygon> &p_polygons, const Vector3 &p_point);
+
+	static Nav3D::ClosestPointQueryResult region_iteration_get_closest_point_info(const NavRegionIteration3D &p_region_iteration, const Vector3 &p_point); // 66
 
 	static Vector3 map_iteration_get_closest_point_to_segment(const NavMapIteration3D &p_map_iteration, const Vector3 &p_from, const Vector3 &p_to, const bool p_use_collision);
 	static Vector3 map_iteration_get_closest_point(const NavMapIteration3D &p_map_iteration, const Vector3 &p_point);
