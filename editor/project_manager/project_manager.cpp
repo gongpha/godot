@@ -1568,7 +1568,7 @@ ProjectManager::ProjectManager() {
 
 		HBoxContainer *left_hbox = memnew(HBoxContainer);
 		left_hbox->set_alignment(BoxContainer::ALIGNMENT_BEGIN);
-		left_hbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		left_hbox->set_h_size_flags(Control::SIZE_FILL);
 		left_hbox->set_stretch_ratio(1.0);
 		title_bar->add_child(left_hbox);
 
@@ -1602,6 +1602,7 @@ ProjectManager::ProjectManager() {
 			// Spacer to center main toggles.
 			left_spacer = memnew(Control);
 			left_spacer->set_mouse_filter(Control::MOUSE_FILTER_PASS);
+			left_spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			title_bar->add_child(left_spacer);
 		}
 
@@ -1616,6 +1617,7 @@ ProjectManager::ProjectManager() {
 			// Spacer to center main toggles.
 			right_spacer = memnew(Control);
 			right_spacer->set_mouse_filter(Control::MOUSE_FILTER_PASS);
+			right_spacer->set_h_size_flags(Control::SIZE_EXPAND_FILL);
 			title_bar->add_child(right_spacer);
 		}
 
@@ -1623,7 +1625,7 @@ ProjectManager::ProjectManager() {
 
 		HBoxContainer *right_hbox = memnew(HBoxContainer);
 		right_hbox->set_alignment(BoxContainer::ALIGNMENT_END);
-		right_hbox->set_h_size_flags(Control::SIZE_EXPAND_FILL);
+		right_hbox->set_h_size_flags(Control::SIZE_FILL);
 		right_hbox->set_stretch_ratio(1.0);
 		title_bar->add_child(right_hbox);
 
