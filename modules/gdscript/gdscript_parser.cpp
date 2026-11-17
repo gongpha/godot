@@ -147,6 +147,10 @@ GDScriptParser::GDScriptParser() {
 		register_annotation(MethodInfo("@icon", PropertyInfo(Variant::STRING, "icon_path")), AnnotationInfo::SCRIPT, &GDScriptParser::icon_annotation);
 		register_annotation(MethodInfo("@static_unload"), AnnotationInfo::SCRIPT, &GDScriptParser::static_unload_annotation);
 		register_annotation(MethodInfo("@abstract"), AnnotationInfo::SCRIPT | AnnotationInfo::CLASS | AnnotationInfo::FUNCTION, &GDScriptParser::abstract_annotation);
+		// 66 begin
+		register_annotation(MethodInfo("@mod_api"), AnnotationInfo::SCRIPT | AnnotationInfo::CLASS, &GDScriptParser::mod_api_annotation);
+		register_annotation(MethodInfo("@mod_hook"), AnnotationInfo::FUNCTION, &GDScriptParser::mod_hook_annotation);
+		// 66 end
 		// Onready annotation.
 		register_annotation(MethodInfo("@onready"), AnnotationInfo::VARIABLE, &GDScriptParser::onready_annotation);
 		// Export annotations.
@@ -4527,6 +4531,51 @@ bool GDScriptParser::abstract_annotation(AnnotationNode *p_annotation, Node *p_t
 	}
 	ERR_FAIL_V_MSG(false, R"("@abstract" annotation can only be applied to classes and functions.)");
 }
+
+// 66 begin
+bool GDScriptParser::mod_api_annotation(AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class) {
+	ERR_FAIL_COND_V_MSG(p_target->type != Node::CLASS, false, R"("@mod_api" annotation can only be applied to classes.)");
+	ClassNode *class_node = static_cast<ClassNode *>(p_target);
+	if (class_node->is_mod_api) {
+		push_error(R"("@mod_api" annotation can only be used once per class.)", p_annotation);
+		return false;
+	}
+	class_node->is_mod_api = true;
+	return true;
+}
+
+bool GDScriptParser::mod_hook_annotation(AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class) {
+	ERR_FAIL_COND_V_MSG(p_target->type != Node::FUNCTION, false, R"("@mod_hook" annotation can only be applied to functions.)");
+	FunctionNode *function_node = static_cast<FunctionNode *>(p_target);
+	if (function_node->is_mod_hook) {
+		push_error(R"("@mod_hook" annotation can only be used once per function.)", p_annotation);
+		return false;
+	}
+	if (function_node->is_static) {
+		push_error(R"("@mod_hook" annotation cannot be applied to static functions.)", p_annotation);
+		return false;
+	}
+	if (function_node->identifier != nullptr && String(function_node->identifier->name).begins_with("_")) {
+		push_error(vformat(R"*("@mod_hook" annotation cannot be applied to "%s()": private and virtual methods (starting with "_") cannot be hooks.)*", function_node->identifier->name), p_annotation);
+		return false;
+	}
+	bool class_is_mod_api = false;
+	if (p_class != nullptr) {
+		for (const AnnotationNode *annotation : p_class->annotations) {
+			if (annotation->name == SNAME("@mod_api")) {
+				class_is_mod_api = true;
+				break;
+			}
+		}
+	}
+	if (!class_is_mod_api) {
+		push_error(R"("@mod_hook" annotation can only be used in a class marked "@mod_api".)", p_annotation);
+		return false;
+	}
+	function_node->is_mod_hook = true;
+	return true;
+}
+// 66 end
 
 bool GDScriptParser::onready_annotation(AnnotationNode *p_annotation, Node *p_target, ClassNode *p_class) {
 	ERR_FAIL_COND_V_MSG(p_target->type != Node::VARIABLE, false, R"("@onready" annotation can only be applied to class variables.)");

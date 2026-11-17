@@ -87,7 +87,7 @@ def create_template_zip(env, js, wasm, side):
         }
         subst_dict_sizes = dict(subst_dict)
         subst_dict_sizes["___GODOT_EDITOR_FILESIZES___"] = "${GODOT_WEB_FILESIZES()}"
-        html = env.Substfile(target="#bin/godot${PROGSUFFIX}.html", source=html, SUBST_DICT=subst_dict_sizes)
+        html = env.Substfile(target="#bin/godot66${PROGSUFFIX}.html", source=html, SUBST_DICT=subst_dict_sizes)  # 66
         env.Depends(html, wasm)
         in_files.append(html)
         out_files.append(zip_dir.File(binary_name + ".html"))
@@ -104,7 +104,7 @@ def create_template_zip(env, js, wasm, side):
         out_files.append(zip_dir.File("favicon.png"))
         # PWA
         service_worker = env.Substfile(
-            target="#bin/godot${PROGSUFFIX}.service.worker.js",
+            target="#bin/godot66${PROGSUFFIX}.service.worker.js",  # 66
             source=service_worker,
             SUBST_DICT=subst_dict,
         )
@@ -130,7 +130,7 @@ def create_template_zip(env, js, wasm, side):
     zip_files = env.NoCache(env.InstallAs(out_files, in_files))
     env.NoCache(
         env.Zip(
-            "#bin/godot",
+            "#bin/godot66",  # 66
             zip_files,
             ZIPROOT=zip_dir,
             ZIPSUFFIX="${PROGSUFFIX}${ZIPSUFFIX}",

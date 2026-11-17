@@ -194,7 +194,10 @@ class ResourceImporterScene : public ResourceImporter {
 	enum BodyType {
 		BODY_TYPE_STATIC,
 		BODY_TYPE_DYNAMIC,
-		BODY_TYPE_AREA
+		// 66 begin
+		BODY_TYPE_AREA,
+		BODY_TYPE_STATIC_COLLIDER_ONLY,
+		// 66 end
 	};
 
 	enum ShapeType {

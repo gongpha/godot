@@ -1185,8 +1185,14 @@
 		<member name="interface/inspector/integer_drag_speed" type="float" setter="" getter="">
 			Base speed for increasing/decreasing integer values by dragging them in the inspector.
 		</member>
+		<member name="interface/inspector/invert_drag_zoom_y" type="bool" setter="" getter="">
+			If [code]true[/code], inverts the Y axis when dragging numeric values in the inspector to zoom in and out.
+		</member>
 		<member name="interface/inspector/max_array_dictionary_items_per_page" type="int" setter="" getter="">
 			The number of [Array] or [Dictionary] items to display on each "page" in the inspector. Higher values allow viewing more values per page, but take more time to load. This increased load time is noticeable when selecting nodes that have array or dictionary properties in the editor.
+		</member>
+		<member name="interface/inspector/max_drag_zoom_out_value" type="float" setter="" getter="">
+			The maximum value for zooming out when dragging numeric values in the inspector.
 		</member>
 		<member name="interface/inspector/nested_color_mode" type="int" setter="" getter="">
 			Control which property editors are colored when they are opened.
@@ -1202,6 +1208,9 @@
 		</member>
 		<member name="interface/inspector/show_low_level_opentype_features" type="bool" setter="" getter="">
 			If [code]true[/code], display OpenType features marked as [code]hidden[/code] by the font file in the [Font] editor.
+		</member>
+		<member name="interface/inspector/zoom_drag_speed" type="float" setter="" getter="">
+			Base speed for increasing/decreasing zoom levels by dragging in the inspector.
 		</member>
 		<member name="interface/multi_window/enable" type="bool" setter="" getter="">
 			If [code]true[/code], multiple window support in editor is enabled. The following panels can become dedicated windows (i.e. made floating): Docks, Script editor, Shader editor, and Game Workspace.
@@ -1725,6 +1734,34 @@
 		</member>
 		<member name="text_editor/theme/highlighting/comment_markers/critical_list" type="String" setter="" getter="">
 			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/critical_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom1_color" type="Color" setter="" getter="">
+			The script editor's custom1 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom1_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom1_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom1_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom2_color" type="Color" setter="" getter="">
+			The script editor's custom2 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom2_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom2_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom2_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom3_color" type="Color" setter="" getter="">
+			The script editor's custom3 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom3_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom3_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom3_color] color. These must not include spaces or symbols or they will not be highlighted.
+			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom4_color" type="Color" setter="" getter="">
+			The script editor's custom4 comment marker text color. These markers are determined by [member text_editor/theme/highlighting/comment_markers/custom4_list].
+		</member>
+		<member name="text_editor/theme/highlighting/comment_markers/custom4_list" type="String" setter="" getter="">
+			A comma-separated list of case-sensitive words to highlight in comments. The text will be highlighted in the script editor with the [member text_editor/theme/highlighting/comment_markers/custom4_color] color. These must not include spaces or symbols or they will not be highlighted.
 			[b]Note:[/b] This is only implemented in the GDScript syntax highlighter.
 		</member>
 		<member name="text_editor/theme/highlighting/comment_markers/notice_color" type="Color" setter="" getter="">

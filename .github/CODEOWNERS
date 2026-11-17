@@ -2,6 +2,19 @@
 # Each line is a file pattern followed by one or more owners.
 # Owners can be @users, @org/teams or emails.
 
+# 66 begin
+
+/66/                                          @gongpha
+/modules/opus/                                @gongpha
+/modules/opus/**/*.py                         @gongpha @godotengine/buildsystem
+/modules/opus/**/SCsub                        @gongpha @godotengine/buildsystem
+/modules/opus/doc_classes/                    @gongpha @godotengine/documentation
+/modules/ico/                                 @gongpha
+/modules/ico/**/*.py                          @gongpha @godotengine/buildsystem
+/modules/ico/**/SCsub                         @gongpha @godotengine/buildsystem
+
+# 66 end
+
 # Root
 
 /.github/                                     @godotengine/buildsystem

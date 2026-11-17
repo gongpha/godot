@@ -673,7 +673,13 @@ Error ResourceLoaderText::load() {
 				//it's assignment
 			} else if (!next_tag.name.is_empty()) {
 				if (type == "PackedScene" && next_tag.name == "node") {
-					res = _parse_node_tag(res, rp);
+					// 66 begin
+					Ref<PackedScene> target = do_assign ? Ref<PackedScene>(res) : Ref<PackedScene>(memnew(PackedScene));
+					Ref<PackedScene> parsed = _parse_node_tag(target, rp);
+					if (do_assign || parsed.is_null()) {
+						res = parsed;
+					}
+					// 66 end
 				}
 
 				error = OK;

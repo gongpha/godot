@@ -459,7 +459,7 @@ Error SceneReplicationInterface::_send_raw(const uint8_t *p_buffer, int p_size, 
 
 	Ref<MultiplayerPeer> peer = multiplayer->get_multiplayer_peer();
 	ERR_FAIL_COND_V(peer.is_null(), ERR_UNCONFIGURED);
-	peer->set_transfer_channel(0);
+	peer->set_transfer_channel(100); // 66
 	peer->set_transfer_mode(p_reliable ? MultiplayerPeer::TRANSFER_MODE_RELIABLE : MultiplayerPeer::TRANSFER_MODE_UNRELIABLE);
 	return multiplayer->send_command(p_peer, p_buffer, p_size);
 }
@@ -712,6 +712,9 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 	uint8_t *ptr = packet_cache.ptrw();
 	ptr[0] = SceneMultiplayer::NETWORK_COMMAND_SYNC | (1 << SceneMultiplayer::CMD_FLAG_0_SHIFT);
 	int ofs = 1;
+	// 66 begin
+	bool has_new_peer_data = false;
+	// 66 end
 	for (const ObjectID &oid : p_synchronizers) {
 		MultiplayerSynchronizer *sync = get_id_as<MultiplayerSynchronizer>(oid);
 		ERR_CONTINUE(!sync || !sync->get_replication_config_ptr() || !_has_authority(sync));
@@ -720,6 +723,11 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 			continue;
 		}
 		uint64_t last_usec = p_last_watch_usecs.has(oid) ? p_last_watch_usecs[oid] : 0;
+		// 66 begin
+		if (last_usec == 0) {
+			has_new_peer_data = true;
+		}
+		// 66 end
 		uint64_t indexes;
 		List<Variant> delta = sync->get_delta_state(p_usec, last_usec, indexes);
 
@@ -743,8 +751,11 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 
 		if (ofs + 4 + 8 + 4 + size > delta_mtu) {
 			// Send what we got, and reset write.
-			_send_raw(packet_cache.ptr(), ofs, p_peer, true);
+			// 66 begin: send reliably if this contains new peer data
+			_send_raw(packet_cache.ptr(), ofs, p_peer, has_new_peer_data);
 			ofs = 1;
+			has_new_peer_data = false;
+			// 66 end
 		}
 		if (size) {
 			ofs += encode_uint32(sync->get_net_id(), &ptr[ofs]);
@@ -760,7 +771,9 @@ void SceneReplicationInterface::_send_delta(int p_peer, const HashSet<ObjectID> 
 	}
 	if (ofs > 1) {
 		// Got some left over to send.
-		_send_raw(packet_cache.ptr(), ofs, p_peer, true);
+		// 66 begin: send reliably if this contains new peer data
+		_send_raw(packet_cache.ptr(), ofs, p_peer, has_new_peer_data);
+		// 66 end
 	}
 }
 
@@ -776,10 +789,17 @@ Error SceneReplicationInterface::on_delta_receive(int p_from, const uint8_t *p_b
 		ERR_FAIL_COND_V(size > uint32_t(p_buffer_len - ofs), ERR_INVALID_DATA);
 		MultiplayerSynchronizer *sync = _find_synchronizer(p_from, net_id);
 		Node *node = sync ? sync->get_root_node() : nullptr;
-		if (!sync || sync->get_multiplayer_authority() != p_from || !node) {
+		if (!sync || !node) { // 66
 			ofs += size;
 			ERR_CONTINUE_MSG(true, "Ignoring delta for non-authority or invalid synchronizer.");
 		}
+		// 66 begin
+		if (sync->get_multiplayer_authority() != p_from) {
+			ofs += size;
+			print_verbose(vformat("Ignoring delta from peer %d (net id %d): not the synchronizer's authority.", p_from, net_id));
+			continue;
+		}
+		// 66 end
 		List<NodePath> props = sync->get_delta_properties(indexes);
 		ERR_FAIL_COND_V(props.is_empty(), ERR_INVALID_DATA);
 		Vector<Variant> vars;
@@ -791,6 +811,7 @@ Error SceneReplicationInterface::on_delta_receive(int p_from, const uint8_t *p_b
 		err = MultiplayerSynchronizer::set_state(props, node, vars);
 		ERR_FAIL_COND_V(err != OK, err);
 		ofs += size;
+		sync->notify_sync_receive(); // 66
 		sync->emit_signal(SNAME("delta_synchronized"));
 #ifdef DEBUG_ENABLED
 		_profile_node_data("delta_in", sync->get_instance_id(), size);
@@ -892,6 +913,7 @@ Error SceneReplicationInterface::on_sync_receive(int p_from, const uint8_t *p_bu
 		err = MultiplayerSynchronizer::set_state(props, node, vars);
 		ERR_FAIL_COND_V(err, err);
 		ofs += size;
+		sync->notify_sync_receive(); // 66
 		sync->emit_signal(SNAME("synchronized"));
 #ifdef DEBUG_ENABLED
 		_profile_node_data("sync_in", sync->get_instance_id(), size);
@@ -917,3 +939,15 @@ void SceneReplicationInterface::set_max_delta_packet_size(int p_size) {
 int SceneReplicationInterface::get_max_delta_packet_size() const {
 	return delta_mtu;
 }
+
+// 66 begin
+void SceneReplicationInterface::reset_sync_tracking(MultiplayerSynchronizer *p_sync) {
+	if (!p_sync) {
+		return;
+	}
+	const ObjectID sid = p_sync->get_instance_id();
+	for (KeyValue<int, PeerInfo> &E : peers_info) {
+		E.value.last_watch_usecs.erase(sid);
+	}
+}
+// 66 end

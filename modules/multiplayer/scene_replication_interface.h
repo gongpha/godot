@@ -146,6 +146,10 @@ public:
 	void set_max_delta_packet_size(int p_size);
 	int get_max_delta_packet_size() const;
 
+	// 66 begin
+	void reset_sync_tracking(MultiplayerSynchronizer *p_sync);
+	// 66 end
+
 	SceneReplicationInterface(SceneMultiplayer *p_multiplayer, SceneCacheInterface *p_cache) {
 		multiplayer = p_multiplayer;
 		multiplayer_cache = p_cache;

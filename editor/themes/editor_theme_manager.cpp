@@ -357,9 +357,16 @@ EditorThemeManager::ThemeConfiguration EditorThemeManager::_create_theme_config(
 				preset_accent_color = Color(0.15, 0.55, 0.82);
 				preset_base_color = Color(0.89, 0.86, 0.79);
 				preset_contrast = light_contrast;
-			} else { // Default
-				preset_accent_color = Color(0.337, 0.62, 1.0);
+				// 66 begin
+			} else if (config.preset == "Godot") {
+				preset_accent_color = Color(0.44, 0.73, 0.98);
+				preset_base_color = Color(0.21, 0.24, 0.29);
+				preset_contrast = config.default_contrast;
+			} else {
+				// 66 end
+				preset_accent_color = Color(0.784, 0.706, 0.502); // 66
 				preset_base_color = Color(0.161, 0.161, 0.161);
+				preset_contrast = config.default_contrast; // 66
 			}
 
 			config.accent_color = preset_accent_color;
@@ -553,6 +560,12 @@ void EditorThemeManager::_populate_text_editor_styles(const Ref<EditorTheme> &p_
 				colors["text_editor/theme/highlighting/comment_markers/critical_color"] = Color(0.77, 0.35, 0.35);
 				colors["text_editor/theme/highlighting/comment_markers/warning_color"] = Color(0.72, 0.61, 0.48);
 				colors["text_editor/theme/highlighting/comment_markers/notice_color"] = Color(0.56, 0.67, 0.51);
+				// 66 begin
+				colors["text_editor/theme/highlighting/comment_markers/custom1_color"] = Color(0.769, 0.349, 1.0);
+				colors["text_editor/theme/highlighting/comment_markers/custom2_color"] = Color(0.75, 0.39, 0.03);
+				colors["text_editor/theme/highlighting/comment_markers/custom3_color"] = Color(0.24, 0.54, 0.09);
+				colors["text_editor/theme/highlighting/comment_markers/custom4_color"] = Color(0.769, 0.349, 1.0);
+				// 66 end
 			} else {
 				colors["text_editor/theme/highlighting/gdscript/function_definition_color"] = Color(0, 0.6, 0.6);
 				colors["text_editor/theme/highlighting/gdscript/global_function_color"] = Color(0.36, 0.18, 0.72);
@@ -563,6 +576,12 @@ void EditorThemeManager::_populate_text_editor_styles(const Ref<EditorTheme> &p_
 				colors["text_editor/theme/highlighting/comment_markers/critical_color"] = Color(0.8, 0.14, 0.14);
 				colors["text_editor/theme/highlighting/comment_markers/warning_color"] = Color(0.75, 0.39, 0.03);
 				colors["text_editor/theme/highlighting/comment_markers/notice_color"] = Color(0.24, 0.54, 0.09);
+				// 66 begin
+				colors["text_editor/theme/highlighting/comment_markers/custom1_color"] = Color(0.769, 0.349, 1.0);
+				colors["text_editor/theme/highlighting/comment_markers/custom2_color"] = Color(0.75, 0.39, 0.03);
+				colors["text_editor/theme/highlighting/comment_markers/custom3_color"] = Color(0.24, 0.54, 0.09);
+				colors["text_editor/theme/highlighting/comment_markers/custom4_color"] = Color(0.769, 0.349, 1.0);
+				// 66 end
 			}
 		} else if (is_godot2_theme) {
 			colors = EditorSettings::get_godot2_text_editor_theme();

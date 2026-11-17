@@ -1,9 +1,11 @@
-short_name = "godot"
-name = "Godot Engine"
+# 66 begin
+short_name = "godot66"
+name = "Godot Engine 66"
+# 66 end
 major = 4
 minor = 8
 patch = 0
 status = "beta"
 module_config = ""
-website = "https://godotengine.org"
+website = "https://github.com/gongpha/godot/tree/66"  # 66
 docs = "latest"

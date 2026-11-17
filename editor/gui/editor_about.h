@@ -63,6 +63,7 @@ private:
 	Label *_project_manager_label = nullptr;
 	Tree *_tpl_tree = nullptr;
 	RichTextLabel *license_text_label = nullptr;
+	RichTextLabel *license_text_label_66 = nullptr; // 66
 	RichTextLabel *_tpl_text = nullptr;
 	TextureRect *_logo = nullptr;
 	Vector<ItemList *> name_lists;

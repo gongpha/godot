@@ -201,6 +201,15 @@ public:
 		return this->span();
 	}
 
+	// 66 begin
+
+	void subtract(const Array &p_array);
+	void intersect(const Array &p_array);
+	Array difference(const Array &p_array) const;
+	Array intersection(const Array &p_array) const;
+
+	// 66 end
+
 	Array(const Array &p_base, const ContainerType &p_element_type);
 	Array(const Array &p_base, uint32_t p_type, const StringName &p_class_name, const Variant &p_script);
 	Array(const Array &p_from);

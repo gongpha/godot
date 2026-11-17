@@ -775,6 +775,31 @@
 				[b]Note:[/b] Unlike most other annotations, the argument of the [annotation @icon] annotation must be a string literal (constant expressions are not supported).
 			</description>
 		</annotation>
+		<!-- 66 begin -->
+		<annotation name="@mod_api">
+			<return type="void" />
+			<description>
+				Marks a class as part of the mod API. It does nothing when the script runs: it only flags the class for export tools that turn scripts into native code, which keep marked classes visible to mods and treat every other class as internal.
+				Only methods marked with [annotation @mod_hook] can be overridden by a mod. Other methods of the class can be called but not overridden.
+				[codeblock]
+				@mod_api
+				class_name RoundRules
+				extends Node
+
+				@mod_hook
+				func player_died(player: Node) -&gt; void:
+					pass
+				[/codeblock]
+			</description>
+		</annotation>
+		<annotation name="@mod_hook">
+			<return type="void" />
+			<description>
+				Marks a method of a [annotation @mod_api] class as a hook that a mod can override. It does nothing when the script runs.
+				It is an error to use it in a class without [annotation @mod_api], on a [code]static[/code] method, or on a method whose name starts with an underscore.
+			</description>
+		</annotation>
+		<!-- 66 end -->
 		<annotation name="@onready">
 			<return type="void" />
 			<description>

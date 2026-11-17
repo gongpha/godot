@@ -32,8 +32,8 @@
 
 #include "core/io/image.h"
 
-#ifdef TOOLS_ENABLED
+//#ifdef TOOLS_ENABLED // 66
 void _compress_astc(Image *r_img, Image::UsedChannels p_channels, Image::CompressProfile p_profile);
-#endif
+//#endif // 66
 
 void _decompress_astc(Image *r_img);

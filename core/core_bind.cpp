@@ -146,6 +146,12 @@ Vector<String> ResourceLoader::list_directory(const String &p_directory) {
 	return ::ResourceLoader::list_directory(p_directory);
 }
 
+// 66 begin
+String ResourceLoader::remap_path(const String &p_path) {
+	return ::ResourceLoader::path_remap(p_path);
+}
+// 66 end
+
 void ResourceLoader::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("load_threaded_request", "path", "type_hint", "use_sub_threads", "cache_mode"), &ResourceLoader::load_threaded_request, DEFVAL(""), DEFVAL(false), DEFVAL(CACHE_MODE_REUSE));
 	ClassDB::bind_method(D_METHOD("load_threaded_get_status", "path", "progress"), &ResourceLoader::load_threaded_get_status, DEFVAL_ARRAY);
@@ -163,6 +169,8 @@ void ResourceLoader::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_resource_uid", "path"), &ResourceLoader::get_resource_uid);
 	ClassDB::bind_method(D_METHOD("get_resource_type", "path"), &ResourceLoader::get_resource_type);
 	ClassDB::bind_method(D_METHOD("list_directory", "directory_path"), &ResourceLoader::list_directory);
+
+	ClassDB::bind_method(D_METHOD("remap_path", "path"), &ResourceLoader::remap_path); // 66
 
 	BIND_ENUM_CONSTANT(THREAD_LOAD_INVALID_RESOURCE);
 	BIND_ENUM_CONSTANT(THREAD_LOAD_IN_PROGRESS);
@@ -900,6 +908,13 @@ void OS::_bind_methods() {
 	BIND_ENUM_CONSTANT(STD_HANDLE_FILE);
 	BIND_ENUM_CONSTANT(STD_HANDLE_PIPE);
 	BIND_ENUM_CONSTANT(STD_HANDLE_UNKNOWN);
+
+	// 66 begin
+
+	ClassDB::bind_method(D_METHOD("wine_get_version"), &OS::wine_get_version);
+	ClassDB::bind_method(D_METHOD("wine_get_host_version"), &OS::wine_get_host_version);
+
+	// 66 end
 }
 
 OS::OS() {
@@ -915,6 +930,18 @@ OS::~OS() {
 		logger_bind->clear();
 	}
 }
+
+// 66 begin
+
+String OS::wine_get_version() const {
+	return ::OS::get_singleton()->wine_get_version();
+}
+
+String OS::wine_get_host_version() const {
+	return ::OS::get_singleton()->wine_get_host_version();
+}
+
+// 66 end
 
 ////// Geometry2D //////
 

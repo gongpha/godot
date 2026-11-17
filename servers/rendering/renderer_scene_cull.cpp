@@ -2222,6 +2222,20 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 
 	bool overlap = RSG::light_storage->light_directional_get_blend_splits(p_instance->base);
 
+	// 66 begin
+
+	Vector3 full_endpoints[8];
+	bool res = p_cam_projection.get_endpoints(p_cam_transform, full_endpoints);
+	ERR_FAIL_COND(!res);
+
+	Vector<Plane> full_receiver_planes = p_cam_projection.get_projection_planes(p_cam_transform);
+
+	const real_t cam_z_near = p_cam_projection.get_z_near();
+	const real_t cam_z_far = p_cam_projection.get_z_far();
+	const real_t cam_depth_range = MAX(cam_z_far - cam_z_near, (real_t)CMP_EPSILON);
+	const Vector3 cam_fwd = -p_cam_transform.basis.get_column(2).normalized();
+	// 66 end
+
 	cull.shadow_count = p_shadow_index + 1;
 	cull.shadows[p_shadow_index].cascade_count = splits;
 	cull.shadows[p_shadow_index].light_instance = light->instance;
@@ -2230,26 +2244,36 @@ void RendererSceneCull::_light_instance_setup_directional_shadow(int p_shadow_in
 	for (int i = 0; i < splits; i++) {
 		RENDER_TIMESTAMP("Cull DirectionalLight3D, Split " + itos(i));
 
-		// setup a camera matrix for that range!
-		Projection camera_matrix;
+		// 66 begin
+		const real_t split_near = distances[(i == 0 || !overlap) ? i : i - 1];
+		const real_t split_far = distances[i + 1];
 
-		real_t aspect = p_cam_projection.get_aspect();
+		Vector3 endpoints[8]; // frustum plane endpoints
 
-		if (p_cam_orthogonal) {
-			Vector2 vp_he = p_cam_projection.get_viewport_half_extents();
+		{
+			const real_t t_near = CLAMP((split_near - cam_z_near) / cam_depth_range, (real_t)0.0, (real_t)1.0);
+			const real_t t_far = CLAMP((split_far - cam_z_near) / cam_depth_range, (real_t)0.0, (real_t)1.0);
 
-			camera_matrix.set_orthogonal(vp_he.y * 2.0, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], false);
-		} else {
-			real_t fov = p_cam_projection.get_fov(); //this is actually yfov, because set aspect tries to keep it
-			camera_matrix.set_perspective(fov, aspect, distances[(i == 0 || !overlap) ? i : i - 1], distances[i + 1], true);
+			for (int j = 0; j < 4; j++) {
+				const Vector3 &f = full_endpoints[j];
+				const Vector3 &n = full_endpoints[j + 4];
+				endpoints[j] = n.lerp(f, t_far);
+				endpoints[j + 4] = n.lerp(f, t_near);
+			}
 		}
 
-		Vector<Plane> receiver_frustum_planes = camera_matrix.get_projection_planes(p_cam_transform);
+		Vector<Plane> receiver_frustum_planes = full_receiver_planes;
 
-		//obtain the frustum endpoints
-		Vector3 endpoints[8]; // frustum plane endpoints
-		bool res = camera_matrix.get_endpoints(p_cam_transform, endpoints);
-		ERR_CONTINUE(!res);
+		{
+			Plane near_plane = receiver_frustum_planes[Projection::PLANE_NEAR];
+			near_plane.d += near_plane.normal.dot(cam_fwd) * (split_near - cam_z_near);
+			receiver_frustum_planes.write[Projection::PLANE_NEAR] = near_plane;
+
+			Plane far_plane = receiver_frustum_planes[Projection::PLANE_FAR];
+			far_plane.d += far_plane.normal.dot(cam_fwd) * (split_far - cam_z_far);
+			receiver_frustum_planes.write[Projection::PLANE_FAR] = far_plane;
+		}
+		// 66 end
 
 		light_culler->prepare_directional_light_cascade(p_shadow_index, i, receiver_frustum_planes, endpoints);
 

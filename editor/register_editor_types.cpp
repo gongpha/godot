@@ -54,6 +54,7 @@
 #include "editor/file_system/editor_file_system.h"
 #include "editor/file_system/editor_paths.h"
 #include "editor/gui/editor_file_dialog.h"
+#include "editor/gui/editor_range_dial.h" // 66
 #include "editor/gui/editor_spin_slider.h"
 #include "editor/gui/editor_toaster.h"
 #include "editor/import/3d/resource_importer_obj.h"
@@ -192,6 +193,10 @@ void register_editor_types() {
 	GDREGISTER_CLASS(EditorScriptPicker);
 	GDREGISTER_ABSTRACT_CLASS(EditorUndoRedoManager);
 	GDREGISTER_CLASS(EditorContextMenuPlugin);
+	// 66 begin
+	GDREGISTER_CLASS(EditorRangeDial);
+	GDREGISTER_CLASS(EditorRangeDialPopup);
+	// 66 end
 
 	GDREGISTER_ABSTRACT_CLASS(FileSystemDock);
 	GDREGISTER_VIRTUAL_CLASS(EditorFileSystemImportFormatSupportQuery);

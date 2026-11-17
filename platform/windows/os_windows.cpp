@@ -2970,3 +2970,40 @@ OS_Windows::~OS_Windows() {
 	WinRTUtils::cleanup();
 	CoUninitialize();
 }
+
+// 66 begin
+
+// from https://stackoverflow.com/a/42333249 + modifications for Godot
+String OS_Windows::wine_get_version() const {
+	HMODULE hntdll = GetModuleHandleW(L"ntdll.dll");
+	if (!hntdll) {
+		return String();
+	}
+
+	typedef const char *(__cdecl * wine_get_version_t)(void);
+	wine_get_version_t pwine_get_version = (wine_get_version_t)(void *)GetProcAddress(hntdll, "wine_get_version");
+
+	if (pwine_get_version) {
+		return String(pwine_get_version());
+	}
+
+	return String();
+}
+
+String OS_Windows::wine_get_host_version() const {
+	HMODULE hntdll = GetModuleHandleW(L"ntdll.dll");
+	if (!hntdll) {
+		return String();
+	}
+
+	typedef const char *(__cdecl * wine_get_host_version_t)(void);
+	wine_get_host_version_t pwine_get_host_version = (wine_get_host_version_t)(void *)GetProcAddress(hntdll, "wine_get_host_version");
+
+	if (pwine_get_host_version) {
+		return String(pwine_get_host_version());
+	}
+
+	return String();
+}
+
+// 66 end

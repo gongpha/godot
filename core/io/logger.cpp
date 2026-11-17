@@ -161,6 +161,11 @@ void RotatedFileLogger::rotate_file() {
 	}
 
 	file = FileAccess::open(base_path, FileAccess::WRITE);
+	// 66 begin
+	if (file.is_null()) {
+		return;
+	}
+	// 66 end
 	ERR_FAIL_COND_MSG(file.is_null(), "Failed to open log file for writing: " + base_path);
 	file->detach_from_objectdb(); // Note: This FileAccess instance will exist longer than ObjectDB, therefore can't be registered in ObjectDB.
 }

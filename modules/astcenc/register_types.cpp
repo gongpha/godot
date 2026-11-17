@@ -37,9 +37,9 @@ void initialize_astcenc_module(ModuleInitializationLevel p_level) {
 		return;
 	}
 
-#ifdef TOOLS_ENABLED
+	//#ifdef TOOLS_ENABLED // 66
 	Image::_image_compress_astc_func = _compress_astc;
-#endif
+	//#endif // 66
 
 	Image::_image_decompress_astc = _decompress_astc;
 }

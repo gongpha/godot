@@ -4411,6 +4411,19 @@ int Main::start() {
 	}
 
 	if (!script.is_empty()) {
+		// 66 begin
+		if (check_only) {
+			for (const KeyValue<StringName, ProjectSettings::AutoloadInfo> &E : ProjectSettings::get_singleton()->get_autoload_list()) {
+				if (!E.value.is_singleton) {
+					continue;
+				}
+				for (int i = 0; i < ScriptServer::get_language_count(); i++) {
+					ScriptServer::get_language(i)->add_global_constant(E.value.name, Variant());
+				}
+			}
+		}
+		// 66 end
+
 		Ref<Script> script_res = ResourceLoader::load(script);
 		ERR_FAIL_COND_V_MSG(script_res.is_null(), EXIT_FAILURE, "Can't load script: " + script);
 

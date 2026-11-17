@@ -13,7 +13,7 @@ def generate_bundle(target, source, env):
 
     if env.editor_build:
         # Editor bundle.
-        prefix = "godot." + env["platform"] + "." + env["target"]
+        prefix = "godot66." + env["platform"] + "." + env["target"]  # 66
         if env.dev_build:
             prefix += ".dev"
         if env["precision"] == "double":
@@ -75,9 +75,11 @@ def generate_bundle(target, source, env):
 
     else:
         # Template bundle.
-        app_prefix = "godot." + env["platform"]
-        rel_prefix = "godot." + env["platform"] + "." + "template_release"
-        dbg_prefix = "godot." + env["platform"] + "." + "template_debug"
+        # 66 begin
+        app_prefix = "godot66." + env["platform"]
+        rel_prefix = "godot66." + env["platform"] + "." + "template_release"
+        dbg_prefix = "godot66." + env["platform"] + "." + "template_debug"
+        # 66 end
         if env.dev_build:
             app_prefix += ".dev"
             rel_prefix += ".dev"

@@ -2688,6 +2688,12 @@ static void _register_variant_builtin_methods_array() {
 	bind_method(Array, get_typed_script, sarray(), varray());
 	bind_method(Array, make_read_only, sarray(), varray());
 	bind_method(Array, is_read_only, sarray(), varray());
+	// 66 begin
+	bind_method(Array, subtract, sarray("array"), varray());
+	bind_method(Array, intersect, sarray("array"), varray());
+	bind_method(Array, difference, sarray("array"), varray());
+	bind_method(Array, intersection, sarray("array"), varray());
+	// 66 end
 
 	/* Packed*Array get/set (see VARCALL_ARRAY_GETTER_SETTER macro) */
 	bind_function(PackedByteArray, get, _VariantCall::func_PackedByteArray_get, sarray("index"), varray());

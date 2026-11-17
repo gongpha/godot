@@ -905,6 +905,18 @@
 				[b]Note:[/b] Environment variable names are case-sensitive on all platforms except Windows.
 			</description>
 		</method>
+		<method name="wine_get_host_version" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns the version of the host operating system when running under Wine, or an empty string otherwise.
+			</description>
+		</method>
+		<method name="wine_get_version" qualifiers="const">
+			<return type="String" />
+			<description>
+				Returns the version of Wine if running under Wine, or an empty string otherwise.
+			</description>
+		</method>
 	</methods>
 	<members>
 		<member name="delta_smoothing" type="bool" setter="set_delta_smoothing" getter="is_delta_smoothing_enabled" default="true">

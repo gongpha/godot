@@ -518,7 +518,7 @@ Node *SceneState::_instantiate(GenEditState p_edit_state, LocalVector<DeferredNo
 						} else {
 							// Making sure that instances of inherited scenes don't share the same
 							// reference between them.
-							if (is_inherited_scene) {
+							if (is_inherited_scene && value.get_type() != Variant::OBJECT) { // 66
 								value = value.duplicate(true);
 							}
 						}

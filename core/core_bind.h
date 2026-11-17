@@ -88,6 +88,9 @@ public:
 
 	Vector<String> list_directory(const String &p_directory);
 
+	// 66 begin
+	String remap_path(const String &p_path);
+
 	ResourceLoader() { singleton = this; }
 };
 
@@ -323,6 +326,13 @@ public:
 
 	OS();
 	~OS();
+
+	// 66 begin
+
+	String wine_get_version() const;
+	String wine_get_host_version() const;
+
+	// 66 end
 };
 
 class Geometry2D : public Object {

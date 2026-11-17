@@ -47,6 +47,8 @@ void NavRegionBuilder3D::build_iteration(NavRegionIterationBuild3D &r_build) {
 
 	_build_step_process_navmesh_data(r_build);
 
+	r_build.region_iteration->polygon_bvh.build(r_build.region_iteration->navmesh_polygons); // 66
+
 	_build_step_find_edge_connection_pairs(r_build);
 
 	_build_step_merge_edge_connection_pairs(r_build);

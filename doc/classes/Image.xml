@@ -85,7 +85,7 @@
 				Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.
 				The [param source] parameter helps to pick the best compression method for DXT and ETC2 formats. It is ignored for ASTC compression.
 				The [param profile] lets the user pick whether the compression should prioritize quality or a smaller size. Only ASTC compression uses this currently.
-				[b]Note:[/b] [method compress] is only supported in editor builds. When run in an exported project, this method always returns [constant ERR_UNAVAILABLE].
+				[b]Note:[/b] Unlike the upstream, this fork (66) supports compression in an exported project.
 			</description>
 		</method>
 		<method name="compress_from_channels">
@@ -97,7 +97,7 @@
 				Compresses the image with a VRAM-compressed format to use less memory. Can not directly access pixel data while the image is compressed. Returns error if the chosen compression mode is not available.
 				This is an alternative to [method compress] that lets the user supply the channels used in order for the compressor to pick the best DXT, ETC2, and ASTC formats. For other formats (non DXT, ETC2, or ASTC), this argument is ignored.
 				The [param profile] lets the user pick whether the compression should prioritize quality or a smaller size. Only ASTC compression uses this currently.
-				[b]Note:[/b] [method compress_from_channels] is only supported in editor builds. When run in an exported project, this method always returns [constant ERR_UNAVAILABLE].
+				[b]Note:[/b] Unlike the upstream, this fork (66) supports compression in an exported project.
 			</description>
 		</method>
 		<method name="compute_image_metrics">
@@ -417,6 +417,16 @@
 				[b]Note:[/b] This method is only available in engine builds with the SVG module enabled. By default, the SVG module is enabled, but it can be disabled at build-time using the [code]module_svg_enabled=no[/code] SCons option.
 			</description>
 		</method>
+		<!-- 66 begin -->
+		<method name="load_ico_from_buffer">
+			<return type="int" enum="Error" />
+			<param index="0" name="buffer" type="PackedByteArray" />
+			<description>
+				Loads an image from the binary contents of an ICO file.
+				[b]Note:[/b] This method is only available in engine builds with the ICO module enabled. By default, the ICO module is enabled, but it can be disabled at build-time using the [code]module_ico_enabled=no[/code] SCons option.
+			</description>
+		</method>
+		<!-- 66 end -->
 		<method name="load_tga_from_buffer">
 			<return type="int" enum="Error" />
 			<param index="0" name="buffer" type="PackedByteArray" />
